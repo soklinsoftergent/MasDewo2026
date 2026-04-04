@@ -1,7 +1,6 @@
-package com.rplbo.app;
+package com.rplbo.app.models;
 import java.time.LocalDateTime;       // For Date + Time (Sales, Logs)
-import java.time.LocalDate;           // For Date only (Birthdays, Daily Reports)
-import java.time.format.DateTimeFormatter; // For formatting (e.g., "17 March 2026")
+
 
 public class Customer {
 
