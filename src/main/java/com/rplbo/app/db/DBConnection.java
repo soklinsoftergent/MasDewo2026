@@ -38,9 +38,12 @@ public class DBConnection {
 
     private void connectDb() {
         try {
-            String url = "jdbc:mysql://" + host + ":3306/" + db;
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            this.conn = DriverManager.getConnection(url, user, passwd);
+            String url = "jdbc:mysql://" + host + ":3306/" + db; // OR jbdc:sqlite:masdewo.db
+            Class.forName("com.mysql.cj.jdbc.Driver"); // OR org.sqlite.JDBC
+            this.conn = DriverManager.getConnection(url, user, passwd); // OR no user and no passwd
+//            // SQLite needs this to enforce Foreign Key constraints
+//            Statement stmt = conn.createStatement();
+//            stmt.execute("PRAGMA foreign_keys = ON;");
         } catch (Exception e) {
             System.err.println("FATAL: Can't connect to database: " + e.getMessage());
         }

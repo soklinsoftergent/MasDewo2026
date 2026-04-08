@@ -32,6 +32,11 @@
     </issueManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+            <version>3.45.1.0</version>
+        </dependency>
         <!-- The MySQL Driver (Required for JDBC) -->
         <dependency>
             <groupId>com.mysql</groupId>
