@@ -152,6 +152,18 @@ public class DBConnection {
     public Connection getConnection() {
         return conn;
     }
+
+    public ResultSet selectAll(String tableName) {
+        try {
+            ensureConnection();
+            String sql = String.format("SELECT * FROM %s", tableName);
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+            return pstmt.executeQuery();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 }
 
 //EXAMPLE USAGE
