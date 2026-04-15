@@ -3,7 +3,7 @@ package com.rplbo.app.models;
 import com.rplbo.app.db.DBConnection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class ExpenseItem {
@@ -40,7 +40,7 @@ public class ExpenseItem {
     // --- Active Record Helper ---
     private void executeUpdate(String field, Object value) {
         if (this.exItId != null) {
-            Map<String, Object> updates = new HashMap<>();
+            Map<String, Object> updates = new LinkedHashMap<>();
             updates.put(field, value);
             // Uses 'ex_it_id' from our SQL schema
             DBConnection.getInstance().updateField("expense_items", "ex_it_id", this.exItId, updates);
@@ -81,14 +81,19 @@ public class ExpenseItem {
     public boolean save() {
         if (this.exItId != null) return false;
 
-        Map<String, Object> data = new HashMap<>();
+        Map<String, Object> data = new LinkedHashMap<>();
         data.put("expense_id", this.expenseId);
         data.put("item_id", this.itemId);
         data.put("quantity", this.quantity);
         data.put("unit_price", this.unitPrice);
         data.put("total_price", this.totalPrice);
 
-        return DBConnection.getInstance().insertIntoTable("expense_items", data);
+        Integer newId = DBConnection.getInstance().insertIntoTableAndGetId("expense_items", data);
+        if (newId != null) {
+            this.exItId = newId;
+            return true;
+        }
+        return false;
     }
 
     public void refresh() {

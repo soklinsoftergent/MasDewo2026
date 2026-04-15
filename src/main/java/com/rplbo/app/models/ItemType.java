@@ -3,7 +3,7 @@ package com.rplbo.app.models;
 import com.rplbo.app.db.DBConnection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class ItemType {
@@ -31,7 +31,7 @@ public class ItemType {
     // --- Active Record Helper ---
     private void executeUpdate(String field, Object value) {
         if (this.itTyId != null) {
-            Map<String, Object> updates = new HashMap<>();
+            Map<String, Object> updates = new LinkedHashMap<>();
             updates.put(field, value);
             // Matches 'item_types' table and 'it_ty_id' PK from our SQL schema
             DBConnection.getInstance().updateField("item_types", "it_ty_id", this.itTyId, updates);
@@ -61,20 +61,13 @@ public class ItemType {
     public boolean save() {
         if (this.itTyId != null) return false;
 
-        Map<String, Object> data = new HashMap<>();
+        Map<String, Object> data = new LinkedHashMap<>();
         data.put("name", this.itemTypeName);
         data.put("description", this.description);
 
-        boolean success = DBConnection.getInstance().insertIntoTable("item_types", data);
-
-        if (success) {
-            try (ResultSet rs = DBConnection.getInstance().fetchOneByKeyColumn("LAST_INSERT_ID()", "item_types", "1", 1)) {
-                if (rs != null && rs.next()) {
-                    this.itTyId = rs.getInt(1);
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+        Integer newId = DBConnection.getInstance().insertIntoTableAndGetId("item_types", data);
+        if (newId != null) {
+            this.itTyId = newId;
             return true;
         }
         return false;

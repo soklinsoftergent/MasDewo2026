@@ -3,7 +3,7 @@ package com.rplbo.app.models;
 import com.rplbo.app.db.DBConnection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class SaleItem {
@@ -40,7 +40,7 @@ public class SaleItem {
     // --- Active Record Helper ---
     private void executeUpdate(String field, Object value) {
         if (this.saItId != null) {
-            Map<String, Object> updates = new HashMap<>();
+            Map<String, Object> updates = new LinkedHashMap<>();
             updates.put(field, value);
             // Matches 'sale_items' table and 'sa_it_id' primary key from SQL schema
             DBConnection.getInstance().updateField("sale_items", "sa_it_id", this.saItId, updates);
@@ -88,23 +88,16 @@ public class SaleItem {
     public boolean save() {
         if (this.saItId != null) return false;
 
-        Map<String, Object> data = new HashMap<>();
+        Map<String, Object> data = new LinkedHashMap<>();
         data.put("sale_id", this.saleId);
         data.put("item_id", this.itemId);
         data.put("quantity", this.quantity);
         data.put("unit_price", this.unitPrice);
         data.put("total_price", this.totalPrice);
 
-        boolean success = DBConnection.getInstance().insertIntoTable("sale_items", data);
-
-        if (success) {
-            try (ResultSet rs = DBConnection.getInstance().fetchOneByKeyColumn("LAST_INSERT_ID()", "sale_items", "1", 1)) {
-                if (rs != null && rs.next()) {
-                    this.saItId = rs.getInt(1);
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+        Integer newId = DBConnection.getInstance().insertIntoTableAndGetId("sale_items", data);
+        if (newId != null) {
+            this.saItId = newId;
             return true;
         }
         return false;

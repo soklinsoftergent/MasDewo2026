@@ -3,7 +3,7 @@ package com.rplbo.app.models;
 import com.rplbo.app.db.DBConnection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class Role {
@@ -28,7 +28,7 @@ public class Role {
     // --- Active Record Helper ---
     private void executeUpdate(String field, Object value) {
         if (this.roleId != null) {
-            Map<String, Object> updates = new HashMap<>();
+            Map<String, Object> updates = new LinkedHashMap<>();
             updates.put(field, value);
             // Matches 'roles' table and 'role_id' primary key from our SQL schema
             DBConnection.getInstance().updateField("roles", "role_id", this.roleId, updates);
@@ -62,19 +62,12 @@ public class Role {
     public boolean save() {
         if (this.roleId != null) return false;
 
-        Map<String, Object> data = new HashMap<>();
+        Map<String, Object> data = new LinkedHashMap<>();
         data.put("role_name", this.roleName);
 
-        boolean success = DBConnection.getInstance().insertIntoTable("roles", data);
-
-        if (success) {
-            try (ResultSet rs = DBConnection.getInstance().fetchOneByKeyColumn("LAST_INSERT_ID()", "roles", "1", 1)) {
-                if (rs != null && rs.next()) {
-                    this.roleId = rs.getInt(1);
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+        Integer newId = DBConnection.getInstance().insertIntoTableAndGetId("roles", data);
+        if (newId != null) {
+            this.roleId = newId;
             return true;
         }
         return false;

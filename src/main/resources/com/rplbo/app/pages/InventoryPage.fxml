@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      spacing="18.0"
+      style="-fx-background-color: #1f1f1f;">
+    <HBox spacing="12.0" alignment="CENTER_LEFT">
+        <TextField fx:id="inventorySearchField" promptText="Cari transaksi..." HBox.hgrow="ALWAYS"
+                   style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: #efefef; -fx-prompt-text-fill: #6f6f6f; -fx-padding: 10 12;"/>
+        <Button fx:id="addProductButton" text="+ Tambah Produk" style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 18;"/>
+        <Button fx:id="inventoryFilterButton" text="Filter" style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 18;"/>
+    </HBox>
+
+    <TableView fx:id="inventoryTable" VBox.vgrow="ALWAYS" style="-fx-background-color: #4d667b; -fx-background-radius: 10; -fx-border-color: transparent;">
+        <columns>
+            <TableColumn fx:id="inventoryNameColumn" text="Nama Produk" prefWidth="220.0"/>
+            <TableColumn fx:id="inventoryCategoryColumn" text="Kategori" prefWidth="140.0"/>
+            <TableColumn fx:id="inventoryStockColumn" text="Stok" prefWidth="90.0"/>
+            <TableColumn fx:id="inventoryBuyColumn" text="Harga Beli" prefWidth="130.0"/>
+            <TableColumn fx:id="inventorySellColumn" text="Harga Jual" prefWidth="130.0"/>
+            <TableColumn fx:id="inventoryStatusColumn" text="Status" prefWidth="110.0"/>
+            <TableColumn fx:id="inventoryPlatformColumn" text="Platform" prefWidth="120.0"/>
+        </columns>
+    </TableView>
+</VBox>

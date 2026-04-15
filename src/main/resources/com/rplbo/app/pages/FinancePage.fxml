@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      spacing="18.0"
+      style="-fx-background-color: #1f1f1f;">
+    <HBox spacing="18.0">
+        <VBox HBox.hgrow="ALWAYS" spacing="8.0" style="-fx-background-color: #4d667b; -fx-background-radius: 10; -fx-padding: 18;">
+            <Label text="Saldo Kas" style="-fx-text-fill: #dbe7ef; -fx-font-size: 12px; -fx-font-weight: 700;"/>
+            <Label fx:id="cashBalanceLabel" text="Rp. 0" style="-fx-text-fill: white; -fx-font-size: 28px; -fx-font-weight: 800;"/>
+        </VBox>
+        <VBox HBox.hgrow="ALWAYS" spacing="8.0" style="-fx-background-color: #4d667b; -fx-background-radius: 10; -fx-padding: 18;">
+            <Label text="Total Pemasukan" style="-fx-text-fill: #dbe7ef; -fx-font-size: 12px; -fx-font-weight: 700;"/>
+            <Label fx:id="totalIncomeLabel" text="Rp. 0" style="-fx-text-fill: #79e07c; -fx-font-size: 28px; -fx-font-weight: 800;"/>
+        </VBox>
+        <VBox HBox.hgrow="ALWAYS" spacing="8.0" style="-fx-background-color: #4d667b; -fx-background-radius: 10; -fx-padding: 18;">
+            <Label text="Total Pengeluaran" style="-fx-text-fill: #dbe7ef; -fx-font-size: 12px; -fx-font-weight: 700;"/>
+            <Label fx:id="totalExpenseLabel" text="Rp. 0" style="-fx-text-fill: #ff8e8e; -fx-font-size: 28px; -fx-font-weight: 800;"/>
+        </VBox>
+    </HBox>
+
+    <Label text="Riwayat Transaksi Kas" style="-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: 800;"/>
+
+    <TableView fx:id="financeTable" VBox.vgrow="ALWAYS" style="-fx-background-color: #4d667b; -fx-background-radius: 10; -fx-border-color: transparent;">
+        <columns>
+            <TableColumn fx:id="financeDescriptionColumn" text="Deskripsi" prefWidth="400.0"/>
+            <TableColumn fx:id="financeDateColumn" text="Tanggal" prefWidth="180.0"/>
+            <TableColumn fx:id="financeAmountColumn" text="Jumlah" prefWidth="180.0"/>
+            <TableColumn fx:id="financeTypeColumn" text="Tipe" prefWidth="170.0"/>
+        </columns>
+    </TableView>
+</VBox>

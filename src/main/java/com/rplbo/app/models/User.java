@@ -69,7 +69,7 @@ public class User {
 
     public void setUserPhoneNumber(String newUserPhoneNumber) {
         this.userPhoneNumber = newUserPhoneNumber;
-        executeUpdate("phone_number", newUserPhoneNumber);
+        executeUpdate("phonenumber", newUserPhoneNumber);
     }
 
     public void giveUserAdmin() {
@@ -84,7 +84,7 @@ public class User {
 
     public void rmUserPhoneNumber() {
         this.userPhoneNumber = null;
-        executeUpdate("phone_number", null);
+        executeUpdate("phonenumber", null);
     }
 
 //    public void rmUserFullName() {
@@ -109,7 +109,7 @@ public class User {
         map.put("id", userId);
         map.put("username", username);
         map.put("email", userEmail);
-        map.put("phone_number", userPhoneNumber);
+        map.put("phonenumber", userPhoneNumber);
         map.put("admin", isAdmin);
         return map;
     }

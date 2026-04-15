@@ -23,6 +23,7 @@ CREATE TABLE users (
 CREATE TABLE item_types (
     it_ty_id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL,
+    description TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -123,6 +124,11 @@ CREATE TABLE kas_transactions (
     description TEXT,
     amount DECIMAL(15,2) NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+CREATE TABLE kas (
+    id INT PRIMARY KEY,
+    balance DECIMAL(15,2) NOT NULL DEFAULT 0.00
 );
 
 -- 7. Audit Trail

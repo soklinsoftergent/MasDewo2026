@@ -5,8 +5,14 @@ import java.util.Map;
 import java.util.StringJoiner;
 
 public class DBConnection {
+    public enum Dialect {
+        MYSQL,
+        SQLITE
+    }
+
     private static DBConnection instance;
     private Connection conn;
+    private Dialect dialect;
 
     // Config variables
     private String host, user, passwd, db;
@@ -38,20 +44,37 @@ public class DBConnection {
 
     private void connectDb() {
         try {
-            String url = "jdbc:mysql://" + host + ":3306/" + db; // OR jbdc:sqlite:masdewo.db
-            Class.forName("com.mysql.cj.jdbc.Driver"); // OR org.sqlite.JDBC
-            this.conn = DriverManager.getConnection(url, user, passwd); // OR no user and no passwd
-//            // SQLite needs this to enforce Foreign Key constraints
-//            Statement stmt = conn.createStatement();
-//            stmt.execute("PRAGMA foreign_keys = ON;");
+            String url = "jdbc:mysql://" + host + ":3306/" + db
+                    + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Jakarta";
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            this.conn = DriverManager.getConnection(url, user, passwd);
+            this.dialect = Dialect.MYSQL;
         } catch (Exception e) {
-            System.err.println("FATAL: Can't connect to database: " + e.getMessage());
+            connectSqlite(e);
+        }
+    }
+
+    private void connectSqlite(Exception mysqlError) {
+        try {
+            Class.forName("org.sqlite.JDBC");
+            this.conn = DriverManager.getConnection("jdbc:sqlite:masdewo.db");
+            this.dialect = Dialect.SQLITE;
+            try (Statement statement = conn.createStatement()) {
+                statement.execute("PRAGMA foreign_keys = ON");
+            }
+        } catch (Exception sqliteError) {
+            IllegalStateException error = new IllegalStateException("Can't connect to database", mysqlError);
+            error.addSuppressed(sqliteError);
+            throw error;
         }
     }
 
     public void ensureConnection() throws SQLException {
         if (conn == null || conn.isClosed() || !conn.isValid(2)) {
             connectDb();
+            if (conn == null || conn.isClosed()) {
+                throw new SQLException("Database connection is not available.");
+            }
         }
     }
 
@@ -79,28 +102,42 @@ public class DBConnection {
      * Usage: insertIntoTable("users", Map.of("username", "admin", "email", "a@b.com"))
      */
     public boolean insertIntoTable(String tableName, Map<String, Object> data) {
+        return insertIntoTableAndGetId(tableName, data) != null;
+    }
+
+    public Integer insertIntoTableAndGetId(String tableName, Map<String, Object> data) {
         try {
             ensureConnection();
             StringJoiner columns = new StringJoiner(", ");
             StringJoiner placeholders = new StringJoiner(", ");
 
-            for (String key : data.keySet()) {
-                columns.add(key);
+            for (Map.Entry<String, Object> entry : data.entrySet()) {
+                columns.add(entry.getKey());
                 placeholders.add("?");
             }
 
             String sql = String.format("INSERT INTO %s (%s) VALUES (%s)", tableName, columns, placeholders);
-            PreparedStatement pstmt = conn.prepareStatement(sql);
+            PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 
             int i = 1;
-            for (Object value : data.values()) {
-                pstmt.setObject(i++, value);
+            for (Map.Entry<String, Object> entry : data.entrySet()) {
+                pstmt.setObject(i++, entry.getValue());
             }
 
-            return pstmt.executeUpdate() > 0;
+            int affectedRows = pstmt.executeUpdate();
+            if (affectedRows == 0) {
+                return null;
+            }
+
+            try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    return generatedKeys.getInt(1);
+                }
+            }
+            return null;
         } catch (SQLException e) {
             e.printStackTrace();
-            return false;
+            return null;
         }
     }
 
@@ -111,16 +148,16 @@ public class DBConnection {
         try {
             ensureConnection();
             StringJoiner setClause = new StringJoiner(", ");
-            for (String key : updates.keySet()) {
-                setClause.add(key + " = ?");
+            for (Map.Entry<String, Object> entry : updates.entrySet()) {
+                setClause.add(entry.getKey() + " = ?");
             }
 
             String sql = String.format("UPDATE %s SET %s WHERE %s = ?", tableName, setClause, keyColumn);
             PreparedStatement pstmt = conn.prepareStatement(sql);
 
             int i = 1;
-            for (Object value : updates.values()) {
-                pstmt.setObject(i++, value);
+            for (Map.Entry<String, Object> entry : updates.entrySet()) {
+                pstmt.setObject(i++, entry.getValue());
             }
             pstmt.setObject(i, keyValue);
 
@@ -151,6 +188,18 @@ public class DBConnection {
 
     public Connection getConnection() {
         return conn;
+    }
+
+    public Dialect getDialect() {
+        return dialect;
+    }
+
+    public boolean isMySql() {
+        return dialect == Dialect.MYSQL;
+    }
+
+    public boolean isSqlite() {
+        return dialect == Dialect.SQLITE;
     }
 
     public ResultSet selectAll(String tableName) {
