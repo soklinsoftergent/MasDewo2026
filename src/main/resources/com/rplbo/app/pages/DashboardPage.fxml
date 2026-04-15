@@ -5,6 +5,7 @@
 <?import javafx.scene.chart.NumberAxis?>
 <?import javafx.scene.chart.PieChart?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Priority?>
 <?import javafx.scene.layout.VBox?>
@@ -36,13 +37,18 @@
         </VBox>
     </HBox>
 
-    <VBox spacing="10.0" style="-fx-background-color: #fbf8f6; -fx-background-radius: 10; -fx-padding: 18;">
+    <VBox spacing="10.0" prefHeight="280.0" style="-fx-background-color: #fbf8f6; -fx-background-radius: 10; -fx-padding: 18;">
         <Label text="Stok Kritis (Di Bawah 5 Unit)" style="-fx-text-fill: #4d667b; -fx-font-size: 24px; -fx-font-weight: 800;"/>
-        <VBox fx:id="criticalItemsListBox" spacing="10.0"/>
+        <ScrollPane fitToWidth="true" prefHeight="210.0" VBox.vgrow="ALWAYS"
+                    style="-fx-background-color: transparent; -fx-background: transparent;">
+            <content>
+                <VBox fx:id="criticalItemsListBox" spacing="10.0" style="-fx-padding: 0 8 0 0;"/>
+            </content>
+        </ScrollPane>
     </VBox>
 
     <HBox spacing="16.0" VBox.vgrow="ALWAYS">
-        <BarChart fx:id="inventoryStockChart" HBox.hgrow="ALWAYS" legendVisible="false" animated="false" style="-fx-background-color: #fbf8f6; -fx-background-radius: 10; -fx-padding: 12;">
+        <BarChart fx:id="inventoryStockChart" HBox.hgrow="ALWAYS" maxWidth="1.7976931348623157E308" legendVisible="false" animated="false" style="-fx-background-color: #fbf8f6; -fx-background-radius: 10; -fx-padding: 12;">
             <xAxis>
                 <CategoryAxis/>
             </xAxis>
@@ -50,6 +56,6 @@
                 <NumberAxis/>
             </yAxis>
         </BarChart>
-        <PieChart fx:id="platformPieChart" prefWidth="320.0" legendVisible="true" labelsVisible="true" clockwise="true" style="-fx-background-color: #2b2b2b; -fx-background-radius: 10; -fx-padding: 12;"/>
+        <PieChart fx:id="platformPieChart" HBox.hgrow="ALWAYS" maxWidth="1.7976931348623157E308" legendVisible="true" labelsVisible="true" clockwise="true" style="-fx-background-color: #2b2b2b; -fx-background-radius: 10; -fx-padding: 12;"/>
     </HBox>
 </VBox>

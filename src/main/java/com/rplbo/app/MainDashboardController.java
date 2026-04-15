@@ -5,6 +5,7 @@ import com.rplbo.app.db.DBConnection;
 import com.rplbo.app.models.Item;
 import com.rplbo.app.models.ItemType;
 import com.rplbo.app.models.User;
+import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -90,6 +91,7 @@ public class MainDashboardController {
 
     private TextField inventorySearchField;
     private Button addProductButton;
+    private Button editStockButton;
     private Button inventoryFilterButton;
     private TableView<InventoryRow> inventoryTable;
     private TableColumn<InventoryRow, String> inventoryNameColumn;
@@ -155,6 +157,7 @@ public class MainDashboardController {
         invNode = inventoryPage.root;
         inventorySearchField = getNode(inventoryPage, "inventorySearchField", TextField.class);
         addProductButton = getNode(inventoryPage, "addProductButton", Button.class);
+        editStockButton = getNode(inventoryPage, "editStockButton", Button.class);
         inventoryFilterButton = getNode(inventoryPage, "inventoryFilterButton", Button.class);
         inventoryTable = getNode(inventoryPage, "inventoryTable", TableView.class);
         inventoryNameColumn = getNode(inventoryPage, "inventoryNameColumn", TableColumn.class);
@@ -228,6 +231,7 @@ public class MainDashboardController {
     private void wireActions() {
         inventorySearchField.setOnAction(event -> applyInventoryFilters());
         addProductButton.setOnAction(event -> handleAddProduct());
+        editStockButton.setOnAction(event -> handleEditStock());
         inventoryFilterButton.setOnAction(event -> handleInventoryFilter());
 
         salesSearchField.setOnAction(event -> applySalesFilters());
@@ -383,6 +387,7 @@ public class MainDashboardController {
         for (PlatformShare share : loadPlatformShares()) {
             platformPieChart.getData().add(new PieChart.Data(share.name, share.count));
         }
+        stylePlatformPieChart();
     }
 
     private void refreshInventoryRows() {
@@ -695,6 +700,64 @@ public class MainDashboardController {
         }
     }
 
+    private void handleEditStock() {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Edit Stok");
+        dialog.setHeaderText("Pilih barang dan ubah stok inventory");
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        ComboBox<ItemStockOption> itemCombo = new ComboBox<>(FXCollections.observableArrayList(loadInventoryItems()));
+        Spinner<Integer> stockSpinner = new Spinner<>(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 999999, 0));
+        Label categoryValue = new Label("-");
+        Label platformValue = new Label("-");
+        Label currentStockValue = new Label("-");
+
+        itemCombo.setPromptText("Pilih barang");
+        categoryValue.setStyle("-fx-text-fill: #4b5563;");
+        platformValue.setStyle("-fx-text-fill: #4b5563;");
+        currentStockValue.setStyle("-fx-text-fill: #4b5563; -fx-font-weight: 700;");
+
+        itemCombo.valueProperty().addListener((observable, oldValue, selectedItem) -> {
+            if (selectedItem == null) {
+                categoryValue.setText("-");
+                platformValue.setText("-");
+                currentStockValue.setText("-");
+                stockSpinner.getValueFactory().setValue(0);
+                return;
+            }
+            categoryValue.setText(selectedItem.category);
+            platformValue.setText(selectedItem.platform);
+            currentStockValue.setText(selectedItem.stock + " unit");
+            stockSpinner.getValueFactory().setValue(selectedItem.stock);
+        });
+
+        if (!itemCombo.getItems().isEmpty()) {
+            itemCombo.getSelectionModel().selectFirst();
+        }
+
+        GridPane form = buildForm(
+                "Barang", itemCombo,
+                "Kategori", categoryValue,
+                "Platform", platformValue,
+                "Stok Saat Ini", currentStockValue,
+                "Stok Baru", stockSpinner
+        );
+        dialog.getDialogPane().setContent(form);
+
+        Optional<ButtonType> result = dialog.showAndWait();
+        if (result.isEmpty() || result.get() != ButtonType.OK) {
+            return;
+        }
+
+        try {
+            ItemStockOption selectedItem = requireSelection(itemCombo, "Barang");
+            updateItemStock(selectedItem.id, stockSpinner.getValue());
+            refreshAllData();
+        } catch (Exception exception) {
+            showError("Edit stok gagal", exception);
+        }
+    }
+
     private void handleNewTransaction() {
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Transaksi Baru");
@@ -844,6 +907,18 @@ public class MainDashboardController {
         applyInventoryFilters();
     }
 
+    private void updateItemStock(int itemId, int newStock) throws SQLException {
+        String sql = "UPDATE items SET stock = ? WHERE id = ?";
+        try (PreparedStatement statement = connection().prepareStatement(sql)) {
+            statement.setInt(1, newStock);
+            statement.setInt(2, itemId);
+            int affectedRows = statement.executeUpdate();
+            if (affectedRows == 0) {
+                throw new IllegalStateException("Barang tidak ditemukan saat stok diperbarui.");
+            }
+        }
+    }
+
     private List<ItemTypeOption> loadItemTypes() {
         List<ItemTypeOption> options = new ArrayList<>();
         String sql = "SELECT it_ty_id, name FROM item_types ORDER BY name";
@@ -907,6 +982,29 @@ public class MainDashboardController {
         return options;
     }
 
+    private List<ItemStockOption> loadInventoryItems() {
+        List<ItemStockOption> options = new ArrayList<>();
+        String sql = "SELECT i.id, i.name, i.stock, COALESCE(t.name, '-') AS category, "
+                + "COALESCE((SELECT e.ecom_name FROM ecommerce_items ei JOIN ecommerces e ON e.ecom_id = ei.ecom_id "
+                + "WHERE ei.item_id = i.id ORDER BY ei.ecom_item_id LIMIT 1), 'Langsung') AS platform "
+                + "FROM items i LEFT JOIN item_types t ON t.it_ty_id = i.it_ty_id ORDER BY i.name";
+        try (PreparedStatement statement = connection().prepareStatement(sql);
+             ResultSet resultSet = statement.executeQuery()) {
+            while (resultSet.next()) {
+                options.add(new ItemStockOption(
+                        resultSet.getInt("id"),
+                        resultSet.getString("name"),
+                        resultSet.getString("category"),
+                        resultSet.getString("platform"),
+                        resultSet.getInt("stock")
+                ));
+            }
+        } catch (SQLException exception) {
+            showError("Gagal memuat daftar barang", exception);
+        }
+        return options;
+    }
+
     private int ensureCustomer(String name, String phone) throws SQLException {
         String lookupSql = "SELECT cust_id FROM customers WHERE name = ? LIMIT 1";
         try (PreparedStatement lookup = connection().prepareStatement(lookupSql)) {
@@ -935,6 +1033,21 @@ public class MainDashboardController {
         try (PreparedStatement statement = connection().prepareStatement(sql)) {
             statement.executeUpdate();
         }
+    }
+
+    private void stylePlatformPieChart() {
+        Platform.runLater(() -> {
+            platformPieChart.lookupAll(".chart-pie-label").forEach(node ->
+                    node.setStyle("-fx-fill: white; -fx-text-fill: white;"));
+            platformPieChart.lookupAll(".chart-legend-item").forEach(node ->
+                    node.setStyle("-fx-text-fill: white;"));
+            platformPieChart.lookupAll(".chart-legend-item .label").forEach(node ->
+                    node.setStyle("-fx-text-fill: white;"));
+            Node legend = platformPieChart.lookup(".chart-legend");
+            if (legend != null) {
+                legend.setStyle("-fx-background-color: transparent;");
+            }
+        });
     }
 
     private GridPane buildForm(Object... fields) {
@@ -1340,6 +1453,27 @@ public class MainDashboardController {
         @Override
         public String toString() {
             return name + " (" + stock + " stok)";
+        }
+    }
+
+    private static final class ItemStockOption {
+        private final int id;
+        private final String name;
+        private final String category;
+        private final String platform;
+        private final int stock;
+
+        private ItemStockOption(int id, String name, String category, String platform, int stock) {
+            this.id = id;
+            this.name = name;
+            this.category = category;
+            this.platform = platform;
+            this.stock = stock;
+        }
+
+        @Override
+        public String toString() {
+            return name;
         }
     }
 }

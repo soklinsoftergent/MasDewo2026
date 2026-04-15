@@ -18,6 +18,7 @@
         <TextField fx:id="inventorySearchField" promptText="Cari transaksi..." HBox.hgrow="ALWAYS"
                    style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: #efefef; -fx-prompt-text-fill: #6f6f6f; -fx-padding: 10 12;"/>
         <Button fx:id="addProductButton" text="+ Tambah Produk" style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 18;"/>
+        <Button fx:id="editStockButton" text="Edit Stok" style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 18;"/>
         <Button fx:id="inventoryFilterButton" text="Filter" style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 18;"/>
     </HBox>
 
