@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      spacing="18.0"
+      style="-fx-background-color: #1f1f1f;">
+    <HBox spacing="12.0" alignment="CENTER_LEFT">
+        <TextField fx:id="salesSearchField" promptText="Cari transaksi..." HBox.hgrow="ALWAYS"
+                   style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: #efefef; -fx-prompt-text-fill: #6f6f6f; -fx-padding: 10 12;"/>
+        <Button fx:id="newTransactionButton" text="+ Transaksi Baru" style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 18;"/>
+    </HBox>
+
+    <TableView fx:id="salesTable" VBox.vgrow="ALWAYS" style="-fx-background-color: #4d667b; -fx-background-radius: 10; -fx-border-color: transparent;">
+        <columns>
+            <TableColumn fx:id="salesInvoiceColumn" text="No. Invoice" prefWidth="130.0"/>
+            <TableColumn fx:id="salesCustomerColumn" text="Pelanggan" prefWidth="180.0"/>
+            <TableColumn fx:id="salesProductsColumn" text="Produk" prefWidth="110.0"/>
+            <TableColumn fx:id="salesTotalColumn" text="Total" prefWidth="140.0"/>
+            <TableColumn fx:id="salesPlatformColumn" text="Platform" prefWidth="120.0"/>
+            <TableColumn fx:id="salesCashierColumn" text="Kasir" prefWidth="130.0"/>
+            <TableColumn fx:id="salesStatusColumn" text="Status" prefWidth="120.0"/>
+        </columns>
+    </TableView>
+</VBox>

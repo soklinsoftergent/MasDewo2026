@@ -5,7 +5,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class KasTransaction {
@@ -42,7 +42,7 @@ public class KasTransaction {
     // --- Active Record Helper ---
     private void executeUpdate(String field, Object value) {
         if (this.kasTransId != null) {
-            Map<String, Object> updates = new HashMap<>();
+            Map<String, Object> updates = new LinkedHashMap<>();
             updates.put(field, value);
             // Matches 'kas_transactions' table and 'kas_trans_id' from SQL schema
             DBConnection.getInstance().updateField("kas_transactions", "kas_trans_id", this.kasTransId, updates);
@@ -84,14 +84,19 @@ public class KasTransaction {
     public boolean save() {
         if (this.kasTransId != null) return false;
 
-        Map<String, Object> data = new HashMap<>();
+        Map<String, Object> data = new LinkedHashMap<>();
         data.put("type", this.type);
         data.put("description", this.description);
         data.put("amount", this.amount);
         data.put("transaction_date", this.transactionDate);
         data.put("user_id", this.userId);
 
-        return DBConnection.getInstance().insertIntoTable("kas_transactions", data);
+        Integer newId = DBConnection.getInstance().insertIntoTableAndGetId("kas_transactions", data);
+        if (newId != null) {
+            this.kasTransId = newId;
+            return true;
+        }
+        return false;
     }
 
     public void refresh() {

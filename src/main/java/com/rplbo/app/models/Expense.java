@@ -4,7 +4,7 @@ import com.rplbo.app.db.DBConnection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class Expense {
@@ -38,7 +38,7 @@ public class Expense {
     // --- Active Record Helper ---
     private void executeUpdate(String field, Object value) {
         if (this.expenseId != null) {
-            Map<String, Object> updates = new HashMap<>();
+            Map<String, Object> updates = new LinkedHashMap<>();
             updates.put(field, value);
             // Uses 'expense_id' from our SQL schema
             DBConnection.getInstance().updateField("expenses", "expense_id", this.expenseId, updates);
@@ -77,13 +77,18 @@ public class Expense {
             throw new IllegalStateException("Expense already saved with ID: " + this.expenseId);
         }
 
-        Map<String, Object> data = new HashMap<>();
+        Map<String, Object> data = new LinkedHashMap<>();
         data.put("user_id", this.userId);
         data.put("total", this.total);
         data.put("description", this.description);
         data.put("created_at", this.createdAt);
 
-        return DBConnection.getInstance().insertIntoTable("expenses", data);
+        Integer newId = DBConnection.getInstance().insertIntoTableAndGetId("expenses", data);
+        if (newId != null) {
+            this.expenseId = newId;
+            return true;
+        }
+        return false;
     }
 
     public void refresh() {
@@ -105,7 +110,7 @@ public class Expense {
      * Replicates your to_dict() method
      */
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new HashMap<>();
+        Map<String, Object> map = new LinkedHashMap<>();
         map.put("id", expenseId);
         map.put("user_id", userId);
         map.put("total", total);

@@ -3,7 +3,7 @@ package com.rplbo.app.models;
 import com.rplbo.app.db.DBConnection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class Item {
@@ -40,7 +40,7 @@ public class Item {
     // --- Active Record Helper ---
     private void executeUpdate(String field, Object value) {
         if (this.id != null) {
-            Map<String, Object> updates = new HashMap<>();
+            Map<String, Object> updates = new LinkedHashMap<>();
             updates.put(field, value);
             // Uses 'id' as the primary key column name from our SQL schema
             DBConnection.getInstance().updateField("items", "id", this.id, updates);
@@ -103,24 +103,16 @@ public class Item {
     public boolean save() {
         if (this.id != null) return false; // Already exists
 
-        Map<String, Object> data = new HashMap<>();
+        Map<String, Object> data = new LinkedHashMap<>();
         data.put("name", this.name);
         data.put("stock", this.stock);
         data.put("it_ty_id", this.itemTypeId);
         data.put("purchase_price", this.purchasePrice);
         data.put("selling_price", this.sellingPrice);
 
-        boolean success = DBConnection.getInstance().insertIntoTable("items", data);
-
-        if (success) {
-            // Replicate Python's fetch of the LAST_INSERT_ID()
-            try (ResultSet rs = DBConnection.getInstance().fetchOneByKeyColumn("LAST_INSERT_ID()", "items", "1", 1)) {
-                if (rs != null && rs.next()) {
-                    this.id = rs.getInt(1);
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+        Integer newId = DBConnection.getInstance().insertIntoTableAndGetId("items", data);
+        if (newId != null) {
+            this.id = newId;
             return true;
         }
         return false;

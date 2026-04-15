@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<HBox prefHeight="760.0" prefWidth="1240.0" style="-fx-background-color: #1f1f1f;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.rplbo.app.MainDashboardController">
+    <VBox prefWidth="220.0" style="-fx-background-color: #f6f0e8;">
+        <VBox spacing="4.0" style="-fx-padding: 22 18 20 18;">
+            <Label prefHeight="19.0" prefWidth="184.0" style="-fx-text-fill: #405b72; -fx-font-size: 26px; -fx-font-weight: 800;" text="MasDewo APP" textFill="#94c1d0">
+            <font>
+               <Font size="34.0" />
+            </font></Label>
+            <Label style="-fx-text-fill: #8a98a4; -fx-font-size: 11px;" text="Manajemen Toko" />
+        </VBox>
+
+        <VBox spacing="8.0" style="-fx-padding: 18 12 0 12;">
+            <Button fx:id="dashboardButton" onAction="#showDashboard" style="-fx-background-color: #49647c; -fx-text-fill: white; -fx-font-weight: 700; -fx-background-radius: 8; -fx-padding: 12 16; -fx-alignment: CENTER_LEFT;" text="Dashboard" />
+            <Button fx:id="inventoryButton" onAction="#showInventory" style="-fx-background-color: transparent; -fx-text-fill: #627181; -fx-font-weight: 600; -fx-background-radius: 8; -fx-padding: 12 16; -fx-alignment: CENTER_LEFT;" text="Inventory" />
+            <Button fx:id="salesButton" onAction="#showSales" style="-fx-background-color: transparent; -fx-text-fill: #627181; -fx-font-weight: 600; -fx-background-radius: 8; -fx-padding: 12 16; -fx-alignment: CENTER_LEFT;" text="Penjualan" />
+            <Button fx:id="financeButton" onAction="#showFinance" style="-fx-background-color: transparent; -fx-text-fill: #627181; -fx-font-weight: 600; -fx-background-radius: 8; -fx-padding: 12 16; -fx-alignment: CENTER_LEFT;" text="Keuangan" />
+            <Button fx:id="employeeButton" onAction="#showEmployees" style="-fx-background-color: transparent; -fx-text-fill: #627181; -fx-font-weight: 600; -fx-background-radius: 8; -fx-padding: 12 16; -fx-alignment: CENTER_LEFT;" text="Karyawan" />
+        </VBox>
+
+        <Region VBox.vgrow="ALWAYS" />
+
+        <Label style="-fx-text-fill: #c3bcb2; -fx-font-size: 10px; -fx-padding: 0 0 18 18;" text="UI JavaFX" />
+    </VBox>
+
+    <VBox style="-fx-background-color: #1f1f1f;" HBox.hgrow="ALWAYS">
+        <HBox alignment="CENTER_LEFT" spacing="14.0" style="-fx-background-color: #4d667b; -fx-padding: 16 22;">
+            <Label fx:id="pageTitleLabel" style="-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: 800;" text="Dashboard" />
+            <Region HBox.hgrow="ALWAYS" />
+            <Label fx:id="criticalStockBadge" style="-fx-background-color: #f7c2c5; -fx-text-fill: #b33f44; -fx-padding: 10 22; -fx-background-radius: 8; -fx-font-weight: 800;" text="0 stok kritis" />
+            <Label fx:id="adminRoleBadge" style="-fx-background-color: #d8c3ff; -fx-text-fill: #6d4ab5; -fx-padding: 10 26; -fx-background-radius: 8; -fx-font-weight: 800;" text="Admin" />
+        </HBox>
+
+        <StackPane fx:id="contentArea" style="-fx-padding: 22;" VBox.vgrow="ALWAYS" />
+    </VBox>
+</HBox>

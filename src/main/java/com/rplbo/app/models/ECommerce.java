@@ -3,7 +3,7 @@ package com.rplbo.app.models;
 import com.rplbo.app.db.DBConnection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class ECommerce {
@@ -34,7 +34,7 @@ public class ECommerce {
     // --- Active Record Helper ---
     private void executeUpdate(String field, Object value) {
         if (this.ecomId != null) {
-            Map<String, Object> updates = new HashMap<>();
+            Map<String, Object> updates = new LinkedHashMap<>();
             updates.put(field, value);
             // Replicates: self.getDbConn.updateField("ecommerces", "id", self.getEcomId, ...)
             DBConnection.getInstance().updateField("ecommerces", "ecom_id", this.ecomId, updates);
@@ -88,7 +88,7 @@ public class ECommerce {
      * Replicates your getDetails() dict
      */
     public Map<String, Object> getDetails() {
-        Map<String, Object> details = new HashMap<>();
+        Map<String, Object> details = new LinkedHashMap<>();
         details.put("ID", ecomId);
         details.put("Name", ecomName);
         details.put("Platform Fee", ecomPlatformFee);
@@ -102,12 +102,17 @@ public class ECommerce {
     public boolean save() {
         if (this.ecomId != null) return false;
 
-        Map<String, Object> data = new HashMap<>();
+        Map<String, Object> data = new LinkedHashMap<>();
         data.put("ecom_name", ecomName);
         data.put("ecom_platform_fee", ecomPlatformFee);
         data.put("platform_url", platformURL);
 
-        return DBConnection.getInstance().insertIntoTable("ecommerces", data);
+        Integer newId = DBConnection.getInstance().insertIntoTableAndGetId("ecommerces", data);
+        if (newId != null) {
+            this.ecomId = newId;
+            return true;
+        }
+        return false;
     }
 
     @Override

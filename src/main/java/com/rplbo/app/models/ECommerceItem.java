@@ -4,7 +4,7 @@ import com.rplbo.app.db.DBConnection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class ECommerceItem {
@@ -38,7 +38,7 @@ public class ECommerceItem {
     // --- Internal Active Record Helper ---
     private void executeUpdate(String field, Object value) {
         if (this.eCommerceItemId != null) {
-            Map<String, Object> updates = new HashMap<>();
+            Map<String, Object> updates = new LinkedHashMap<>();
             updates.put(field, value);
             // Uses the primary key 'ecom_item_id' from our SQL schema
             DBConnection.getInstance().updateField("ecommerce_items", "ecom_item_id", this.eCommerceItemId, updates);
@@ -90,20 +90,25 @@ public class ECommerceItem {
     public boolean save() {
         if (this.eCommerceItemId != null) return false;
 
-        Map<String, Object> data = new HashMap<>();
+        Map<String, Object> data = new LinkedHashMap<>();
         data.put("item_id", this.itemId);
         data.put("ecom_id", this.ecommerceId);
         data.put("price_override", this.priceOverride);
         data.put("created_at", this.addedAt);
 
-        return DBConnection.getInstance().insertIntoTable("ecommerce_items", data);
+        Integer newId = DBConnection.getInstance().insertIntoTableAndGetId("ecommerce_items", data);
+        if (newId != null) {
+            this.eCommerceItemId = newId;
+            return true;
+        }
+        return false;
     }
 
     /**
      * Replaces getDetails() dict
      */
     public Map<String, Object> toMap() {
-        Map<String, Object> details = new HashMap<>();
+        Map<String, Object> details = new LinkedHashMap<>();
         details.put("ID", eCommerceItemId);
         details.put("Item_ID", itemId);
         details.put("ECom_ID", ecommerceId);
@@ -113,7 +118,7 @@ public class ECommerceItem {
 
     @Override
     public String toString() {
-        return String.format("ECommerceItem[ID=%d, Item=%d, ECom=%d, PriceOverride=%.2f]",
-                eCommerceItemId, itemId, ecommerceId, priceOverride);
+        return String.format("ECommerceItem[ID=%d, Item=%d, ECom=%d, PriceOverride=%s]",
+                eCommerceItemId, itemId, ecommerceId, priceOverride != null ? String.format("%.2f", priceOverride) : "null");
     }
 }

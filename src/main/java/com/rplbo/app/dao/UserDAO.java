@@ -4,6 +4,8 @@ import com.rplbo.app.db.DBConnection;
 import com.rplbo.app.models.User;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class UserDAO {
     private final DBConnection db;
@@ -41,9 +43,10 @@ public class UserDAO {
      * Saves a new user to the database
      */
     public boolean saveUser(User user) {
-        java.util.Map<String, Object> data = new java.util.HashMap<>();
+        Map<String, Object> data = new LinkedHashMap<>();
         data.put("username", user.getUsername());
         data.put("email", user.getUserEmail());
+        data.put("phonenumber", user.getUserPhoneNumber());
         data.put("password_hash", user.getUserPasswdHash());
         data.put("role_id", user.isAdmin() ? 1 : 2);
 
