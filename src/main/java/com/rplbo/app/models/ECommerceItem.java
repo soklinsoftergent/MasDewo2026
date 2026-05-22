@@ -15,7 +15,10 @@ public class ECommerceItem {
     private LocalDateTime addedAt;
 
     /**
-     * Constructor for creating a NEW ECommerceItem
+     * Contructor for a new link not in database
+     * @param itemId
+     * @param ecommerceId
+     * @param priceOverride
      */
     public ECommerceItem(int itemId, int ecommerceId, Double priceOverride) {
         this.itemId = itemId;
@@ -25,14 +28,20 @@ public class ECommerceItem {
     }
 
     /**
-     * Constructor for loading from the Database
+     * Constructor for loading from Database Map
+     * Matches the output of db.selectAll() or db.fetchRow()
      */
-    public ECommerceItem(Integer id, int itemId, int ecommerceId, Double priceOverride, LocalDateTime addedAt) {
-        this.eCommerceItemId = id;
-        this.itemId = itemId;
-        this.ecommerceId = ecommerceId;
-        this.priceOverride = priceOverride;
-        this.addedAt = addedAt;
+    public ECommerceItem(Map<String, Object> data) {
+        this.eCommerceItemId = (Integer) data.get("ecom_item_id");
+        this.itemId = (Integer) data.get("item_id");
+        this.ecommerceId = (Integer) data.get("ecom_id");
+
+        // Safely handle nullable price override and potential type mismatches
+        Object price = data.get("price_override");
+        this.priceOverride = (price != null) ? ((Number) price).doubleValue() : null;
+
+        this.addedAt = (data.get("created_at") instanceof LocalDateTime) ?
+                (LocalDateTime) data.get("created_at") : LocalDateTime.now();
     }
 
     // --- Internal Active Record Helper ---
@@ -40,11 +49,9 @@ public class ECommerceItem {
         if (this.eCommerceItemId != null) {
             Map<String, Object> updates = new LinkedHashMap<>();
             updates.put(field, value);
-            // Uses the primary key 'ecom_item_id' from our SQL schema
             DBConnection.getInstance().updateField("ecommerce_items", "ecom_item_id", this.eCommerceItemId, updates);
         }
     }
-
     // --- Getters ---
 
     public Integer getECommerceItemId() { return eCommerceItemId; }
@@ -75,15 +82,14 @@ public class ECommerceItem {
     public void refresh() {
         if (this.eCommerceItemId == null) return;
 
-        try (ResultSet rs = DBConnection.getInstance().fetchOneByKeyColumn("*", "ecommerce_items", "ecom_item_id", this.eCommerceItemId)) {
-            if (rs != null && rs.next()) {
-                this.itemId = rs.getInt("item_id");
-                this.ecommerceId = rs.getInt("ecom_id");
-                this.priceOverride = rs.getDouble("price_override");
-                this.addedAt = rs.getObject("created_at", LocalDateTime.class);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        // Use the generic fetchRow helper! No more manual ResultSets in models.
+        Map<String, Object> data = DBConnection.getInstance().fetchRow("ecommerce_items", "ecom_item_id", this.eCommerceItemId);
+
+        if (data != null) {
+            this.itemId = (Integer) data.get("item_id");
+            this.ecommerceId = (Integer) data.get("ecom_id");
+            Object price = data.get("price_override");
+            this.priceOverride = (price != null) ? ((Number) price).doubleValue() : null;
         }
     }
 
@@ -118,7 +124,6 @@ public class ECommerceItem {
 
     @Override
     public String toString() {
-        return String.format("ECommerceItem[ID=%d, Item=%d, ECom=%d, PriceOverride=%s]",
-                eCommerceItemId, itemId, ecommerceId, priceOverride != null ? String.format("%.2f", priceOverride) : "null");
+        return String.format("ECommerceItem[ID=%d, ItemID=%d, PlatformID=%d]", eCommerceItemId, itemId, ecommerceId);
     }
 }

@@ -1,28 +1,9 @@
 package com.rplbo.app;
 
-<<<<<<< HEAD
-import com.rplbo.app.db.DBConnection;
-import com.rplbo.app.dao.ItemDAO;
-import com.rplbo.app.models.Item;
-import java.util.List;
-
-public class Main {
-    public static void main(String[] args) {
-        // 1. Initialize Connection (Use your dev_user credentials)
-        DBConnection.initialize("127.0.0.1", "Dewa", "Supaidaa-M4n", "masdewo");
-        ItemDAO itemDAO = new ItemDAO();
-
-        System.out.println("=== 📦 STARTING ITEM DAO TEST ===");
-
-        // TEST 1: Get All Items (Verifies your bulk data import)
-        System.out.println("\nTest 1: Fetching all items...");
-        List<Item> allItems = itemDAO.getAllItems();
-        System.out.println("Total items found: " + allItems.size());
-        if (!allItems.isEmpty()) {
-            System.out.println("First item in DB: " + allItems.get(0).getName());
-=======
+import com.rplbo.app.MainApplication;
 import com.rplbo.app.dao.UserDAO;
 import com.rplbo.app.db.DBConnection;
+import com.rplbo.app.models.Item;
 import com.rplbo.app.models.User;
 import javafx.application.Application;
 
@@ -34,6 +15,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -55,8 +37,6 @@ public class Main {
             seedDemoData();
         } catch (Exception e) {
             throw new IllegalStateException("Aplikasi gagal dijalankan: " + e.getMessage(), e);
->>>>>>> origin/joe
-        }
 
         // TEST 2: Search Logic (Simulates the Search Bar)
         System.out.println("\nTest 2: Searching for 'Adapter'...");
@@ -406,10 +386,10 @@ public class Main {
     private static void seedDemoData() throws SQLException {
         if (countRows("users") == 0) {
             UserDAO userDAO = new UserDAO();
-            userDAO.saveUser(new User("rafael", "rafael@masdewo.local", "password123", "081111111111", true, null));
-            userDAO.saveUser(new User("gentiaras", "gentiaras@masdewo.local", "password123", "082222222222", false, null));
-            userDAO.saveUser(new User("jonathan", "jonathan@masdewo.local", "password123", "083333333333", false, null));
-            userDAO.saveUser(new User("anselmus", "anselmus@masdewo.local", "password123", "084444444444", false, null));
+            userDAO.saveUser(new User("rafael", "rafael@masdewo.local", "password123", "082135317248", false));
+            userDAO.saveUser(new User("gentiaras", "gentiaras@masdewo.local", "password123", "082222222222", false));
+            userDAO.saveUser(new User("jonathan", "jonathan@masdewo.local", "password123", "083333333333", false));
+            userDAO.saveUser(new User("anselmus", "anselmus@masdewo.local", "password123", "084444444444", false));
         }
 
         if (countRows("item_types") == 0) {

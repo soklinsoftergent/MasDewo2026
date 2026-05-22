@@ -26,23 +26,26 @@ public class ExpenseItem {
     }
 
     /**
-     * Constructor for loading from the Database
+     * Constructor for loading from Database Map
+     * Matches the output of db.selectAll() or db.fetchRow()
      */
-    public ExpenseItem(Integer id, int expenseId, int itemId, int quantity, double unitPrice, double totalPrice) {
-        this.exItId = id;
-        this.expenseId = expenseId;
-        this.itemId = itemId;
-        this.quantity = quantity;
-        this.unitPrice = unitPrice;
-        this.totalPrice = totalPrice;
+    public ExpenseItem(Map<String, Object> data) {
+        this.exItId = (Integer) data.get("ex_it_id");
+        this.expenseId = (Integer) data.get("expense_id");
+        this.itemId = (Integer) data.get("item_id");
+
+        // Use Number casting to safely handle different JDBC numeric types
+        this.quantity = ((Number) data.get("quantity")).intValue();
+        this.unitPrice = ((Number) data.get("unit_price")).doubleValue();
+        this.totalPrice = ((Number) data.get("total_price")).doubleValue();
     }
 
     // --- Active Record Helper ---
+
     private void executeUpdate(String field, Object value) {
         if (this.exItId != null) {
             Map<String, Object> updates = new LinkedHashMap<>();
             updates.put(field, value);
-            // Uses 'ex_it_id' from our SQL schema
             DBConnection.getInstance().updateField("expense_items", "ex_it_id", this.exItId, updates);
         }
     }
@@ -99,16 +102,15 @@ public class ExpenseItem {
     public void refresh() {
         if (this.exItId == null) return;
 
-        try (ResultSet rs = DBConnection.getInstance().fetchOneByKeyColumn("*", "expense_items", "ex_it_id", this.exItId)) {
-            if (rs != null && rs.next()) {
-                this.expenseId = rs.getInt("expense_id");
-                this.itemId = rs.getInt("item_id");
-                this.quantity = rs.getInt("quantity");
-                this.unitPrice = rs.getDouble("unit_price");
-                this.totalPrice = rs.getDouble("total_price");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        // Use the generic fetchRow helper
+        Map<String, Object> data = DBConnection.getInstance().fetchRow("expense_items", "ex_it_id", this.exItId);
+
+        if (data != null) {
+            this.expenseId = (Integer) data.get("expense_id");
+            this.itemId = (Integer) data.get("item_id");
+            this.quantity = ((Number) data.get("quantity")).intValue();
+            this.unitPrice = ((Number) data.get("unit_price")).doubleValue();
+            this.totalPrice = ((Number) data.get("total_price")).doubleValue();
         }
     }
 

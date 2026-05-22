@@ -26,15 +26,16 @@ public class SaleItem {
     }
 
     /**
-     * Constructor for loading an existing SaleItem from the Database
+     * Constructor for loading from Database Map
+     * Matches the output of db.selectAll("sale_items")
      */
-    public SaleItem(Integer id, int saleId, int itemId, int quantity, double unitPrice, double totalPrice) {
-        this.saItId = id;
-        this.saleId = saleId;
-        this.itemId = itemId;
-        this.quantity = quantity;
-        this.unitPrice = unitPrice;
-        this.totalPrice = totalPrice;
+    public SaleItem(Map<String, Object> data) {
+        this.saItId = (Integer) data.get("sa_it_id");
+        this.saleId = ((Number) data.get("sale_id")).intValue();
+        this.itemId = ((Number) data.get("item_id")).intValue();
+        this.quantity = ((Number) data.get("quantity")).intValue();
+        this.unitPrice = ((Number) data.get("unit_price")).doubleValue();
+        this.totalPrice = ((Number) data.get("total_price")).doubleValue();
     }
 
     // --- Active Record Helper ---
@@ -42,7 +43,6 @@ public class SaleItem {
         if (this.saItId != null) {
             Map<String, Object> updates = new LinkedHashMap<>();
             updates.put(field, value);
-            // Matches 'sale_items' table and 'sa_it_id' primary key from SQL schema
             DBConnection.getInstance().updateField("sale_items", "sa_it_id", this.saItId, updates);
         }
     }
@@ -83,7 +83,9 @@ public class SaleItem {
     public double getUnitPrice() { return unitPrice; }
     public double getTotalPrice() { return totalPrice; }
 
+
     // --- Database Operations ---
+
 
     public boolean save() {
         if (this.saItId != null) return false;
@@ -106,22 +108,20 @@ public class SaleItem {
     public void refresh() {
         if (this.saItId == null) return;
 
-        try (ResultSet rs = DBConnection.getInstance().fetchOneByKeyColumn("*", "sale_items", "sa_it_id", this.saItId)) {
-            if (rs != null && rs.next()) {
-                this.saleId = rs.getInt("sale_id");
-                this.itemId = rs.getInt("item_id");
-                this.quantity = rs.getInt("quantity");
-                this.unitPrice = rs.getDouble("unit_price");
-                this.totalPrice = rs.getDouble("total_price");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        // Uses the generic fetchRow helper from DBConnection
+        Map<String, Object> data = DBConnection.getInstance().fetchRow("sale_items", "sa_it_id", this.saItId);
+
+        if (data != null) {
+            this.saleId = ((Number) data.get("sale_id")).intValue();
+            this.itemId = ((Number) data.get("item_id")).intValue();
+            this.quantity = ((Number) data.get("quantity")).intValue();
+            this.unitPrice = ((Number) data.get("unit_price")).doubleValue();
+            this.totalPrice = ((Number) data.get("total_price")).doubleValue();
         }
     }
 
     @Override
     public String toString() {
-        return String.format("SaleItem[ID=%d, SaleID=%d, ItemID=%d, Qty=%d, Total=%.2f]",
-                saItId, saleId, itemId, quantity, totalPrice);
+        return String.format("SaleItem[ID=%d, Sale=%d, Item=%d, Qty=%d]", saItId, saleId, itemId, quantity);
     }
 }

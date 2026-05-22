@@ -3,6 +3,7 @@ package com.rplbo.app.models;
 import com.rplbo.app.db.DBConnection;
 import org.mindrot.jbcrypt.BCrypt;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class User {
@@ -12,30 +13,44 @@ public class User {
     private String userPhoneNumber;
     private String userPasswdHash;
     private boolean isAdmin;
+    private boolean isActive;
 
     // The Java equivalent of your BCRYPT_HASH_PATTERN regex
     private static final String BCRYPT_PATTERN = "^\\$2[aby]\\$\\d{2}\\$[./A-Za-z0-9]{53}$";
 
     /**
-     * Constructor (Equivalent to Python __init__)
-     * Handles both plain passwords and already hashed passwords
+     * Constructor for creating a NEW User
+     * (Automatically hashes the password)
      */
-    public User(String username, String email, String passwordOrHash,
-                String phoneNumber, boolean admin, Integer userId) {
-
-        this.userId = userId;
+    public User(String username, String email, String password, String phone, boolean admin) {
         this.username = username;
         this.userEmail = email;
-        this.userPhoneNumber = phoneNumber;
+        this.userPhoneNumber = phone;
         this.isAdmin = admin;
+        this.isActive = true;
 
-        // Password logic: Check if already hashed using Regex
-        if (passwordOrHash != null && passwordOrHash.matches(BCRYPT_PATTERN)) {
-            this.userPasswdHash = passwordOrHash;
-        } else {
-            // If not hashed, hash it now using jBCrypt
-            this.userPasswdHash = BCrypt.hashpw(passwordOrHash, BCrypt.gensalt());
-        }
+        // Hash password immediately
+        this.userPasswdHash = BCrypt.hashpw(password, BCrypt.gensalt());
+    }
+
+    /**
+     * Constructor for loading from Database Map
+     * Matches the output of db.selectAll("users") or db.fetchRow()
+     */
+    public User(Map<String, Object> data) {
+        this.userId = (Integer) data.get("user_id");
+        this.username = (String) data.get("username");
+        this.userEmail = (String) data.get("email");
+        this.userPhoneNumber = (String) data.get("phone_number");
+        this.userPasswdHash = (String) data.get("password_hash");
+
+        // Role ID mapping: 1 = Admin, 2 = Staff
+        int roleId = ((Number) data.get("role_id")).intValue();
+        this.isAdmin = (roleId == 1);
+
+        // Handle boolean is_active
+        Object activeObj = data.get("is_active");
+        this.isActive = (activeObj == null || (Boolean) activeObj);
     }
 
     /**
@@ -43,54 +58,46 @@ public class User {
      */
     private void executeUpdate(String field, Object value) {
         if (this.userId != null) {
-            Map<String, Object> updates = new HashMap<>();
+            Map<String, Object> updates = new LinkedHashMap<>();
             updates.put(field, value);
-            // Uses the updateField helper from your DBConnection utility
             DBConnection.getInstance().updateField("users", "user_id", this.userId, updates);
         }
     }
 
+    public boolean save() {
+        if (this.userId != null) return false;
+        Map<String, Object> data = toMap();
+        Integer newId = DBConnection.getInstance().insertIntoTableAndGetId("users", data);
+        if (newId != null) {
+            this.userId = newId;
+            return true;
+        }
+        return false;
+    }
+
+    public void refresh() {
+        if (this.userId == null) return;
+        Map<String, Object> data = DBConnection.getInstance().fetchRow("users", "user_id", this.userId);
+        if (data != null) {
+            this.username = (String) data.get("username");
+            this.userEmail = (String) data.get("email");
+            this.userPhoneNumber = (String) data.get("phone_number");
+            int roleId = ((Number) data.get("role_id")).intValue();
+            this.isAdmin = (roleId == 1);
+        }
+    }
+
     // --- SETTERS (Active Record Style: Updates DB immediately) ---
-
-    public void setUsername(String newUsername) {
-        this.username = newUsername;
-        executeUpdate("username", newUsername);
-    }
-
-    public void setUserEmail(String newUserEmail) {
-        this.userEmail = newUserEmail;
-        executeUpdate("email", newUserEmail);
-    }
-//
-//    public void setUserFullName(String newUserFullName) {
-//        this.userFullName = newUserFullName;
-//        executeUpdate("full_name", newUserFullName);
-//    }
-
-    public void setUserPhoneNumber(String newUserPhoneNumber) {
-        this.userPhoneNumber = newUserPhoneNumber;
-        executeUpdate("phonenumber", newUserPhoneNumber);
-    }
-
-    public void giveUserAdmin() {
-        this.isAdmin = true;
-        executeUpdate("role_id", 1); // 1 for Admin
-    }
-
-    public void rmUserAdmin() {
-        this.isAdmin = false;
-        executeUpdate("role_id", 2); // 2 for Staff
-    }
-
-    public void rmUserPhoneNumber() {
-        this.userPhoneNumber = null;
-        executeUpdate("phonenumber", null);
-    }
-
-//    public void rmUserFullName() {
-//        this.userFullName = null;
-//        executeUpdate("full_name", null);
-//    }
+    public void setEmail(String email) { this.userEmail = email; executeUpdate("email", email); }
+    public void setPhoneNumber(String phone) { this.userPhoneNumber = phone; executeUpdate("phone_number", phone); }
+    public void setAdmin(boolean admin) {this.isAdmin = admin;executeUpdate("role_id", admin ? 1 : 2);}
+    public void setActive(boolean active) {this.isActive = active;executeUpdate("is_active", active);}
+    public void setUsername(String newUsername) {this.username = newUsername;executeUpdate("username", newUsername);}
+    public void setUserEmail(String newUserEmail) {this.userEmail = newUserEmail;executeUpdate("email", newUserEmail);}
+    public void setUserPhoneNumber(String newUserPhoneNumber) {this.userPhoneNumber = newUserPhoneNumber;executeUpdate("phonenumber", newUserPhoneNumber);}
+    public void giveUserAdmin() {this.isAdmin = true;executeUpdate("role_id", 1); }
+    public void rmUserAdmin() {this.isAdmin = false;executeUpdate("role_id", 2); }
+    public void rmUserPhoneNumber() {this.userPhoneNumber = null;executeUpdate("phonenumber", null);}
 
     // --- GETTERS ---
 
@@ -99,19 +106,22 @@ public class User {
     public String getUserEmail() { return userEmail; }
     public String getUserPhoneNumber() { return userPhoneNumber; }
     public String getUserPasswdHash() { return userPasswdHash; }
+    public String getPasswordHash() { return userPasswdHash; }
     public boolean isAdmin() { return isAdmin; }
+    public boolean isActive() { return isActive; }
 
     /**
      * Replicates your to_dict() method
      */
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new HashMap<>();
-        map.put("id", userId);
-        map.put("username", username);
-        map.put("email", userEmail);
-        map.put("phonenumber", userPhoneNumber);
-        map.put("admin", isAdmin);
-        return map;
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("username", this.username);
+        data.put("email", this.userEmail);
+        data.put("password_hash", this.userPasswdHash);
+        data.put("phone_number", this.userPhoneNumber);
+        data.put("role_id", this.isAdmin ? 1 : 2);
+        data.put("is_active", this.isActive);
+        return data;
     }
 
     /**

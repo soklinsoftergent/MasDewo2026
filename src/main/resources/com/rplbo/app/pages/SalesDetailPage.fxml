@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox prefHeight="500.0" prefWidth="600.0" spacing="20.0" style="-fx-background-color: #1f1f1f;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.rplbo.app.ui.SalesDetailController">
+    <padding><Insets bottom="25.0" left="25.0" right="25.0" top="25.0" /></padding>
+    <children>
+        <HBox alignment="CENTER_LEFT" spacing="10.0">
+            <children>
+                <VBox HBox.hgrow="ALWAYS">
+                    <children>
+                        <Label fx:id="invoiceLabel" text="INV-0000" style="-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: 800;" />
+                        <Label fx:id="dateLabel" text="12 April 2026" style="-fx-text-fill: #8a98a4;" />
+                    </children>
+                </VBox>
+                <Label fx:id="statusBadge" text="SELESAI" style="-fx-background-color: #dff8cd; -fx-text-fill: #4e8f4c; -fx-padding: 8 20; -fx-background-radius: 8; -fx-font-weight: 800;" />
+            </children>
+        </HBox>
+
+        <GridPane hgap="10.0" vgap="10.0" style="-fx-background-color: #2b2b2b; -fx-padding: 15; -fx-background-radius: 10;">
+            <columnConstraints>
+                <ColumnConstraints prefWidth="120.0" />
+                <ColumnConstraints hgrow="ALWAYS" />
+            </columnConstraints>
+            <children>
+                <Label text="Pelanggan:" style="-fx-text-fill: #8a98a4; -fx-font-weight: 700;" />
+                <Label fx:id="customerLabel" text="Guest" style="-fx-text-fill: white;" GridPane.columnIndex="1" />
+                <Label text="Kasir:" style="-fx-text-fill: #8a98a4; -fx-font-weight: 700;" GridPane.rowIndex="1" />
+                <Label fx:id="cashierLabel" text="Admin" style="-fx-text-fill: white;" GridPane.rowIndex="1" GridPane.columnIndex="1" />
+            </children>
+        </GridPane>
+
+        <TableView fx:id="detailTable" VBox.vgrow="ALWAYS" style="-fx-background-color: #4d667b; -fx-background-radius: 10;">
+            <columns>
+                <TableColumn fx:id="colItem" prefWidth="250.0" text="Produk" />
+                <TableColumn fx:id="colQty" prefWidth="80.0" text="Qty" />
+                <TableColumn fx:id="colPrice" prefWidth="120.0" text="Harga" />
+                <TableColumn fx:id="colTotal" prefWidth="120.0" text="Subtotal" />
+            </columns>
+        </TableView>
+
+        <HBox alignment="CENTER_RIGHT" spacing="20.0">
+            <children>
+                <Label text="TOTAL AKHIR:" style="-fx-text-fill: #dbe7ef; -fx-font-weight: 800; -fx-font-size: 18px;" />
+                <Label fx:id="totalLabel" text="Rp. 0" style="-fx-text-fill: #79e07c; -fx-font-weight: 900; -fx-font-size: 22px;" />
+            </children>
+        </HBox>
+    </children>
+</VBox>

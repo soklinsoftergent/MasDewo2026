@@ -20,20 +20,21 @@ public class ItemType {
     }
 
     /**
-     * Constructor for loading from the Database
+     * Constructor for loading from Database Map
+     * Matches the output of db.selectAll() or db.fetchRow()
      */
-    public ItemType(Integer id, String name, String description) {
-        this.itTyId = id;
-        this.itemTypeName = name;
-        this.description = description;
+    public ItemType(Map<String, Object> data) {
+        this.itTyId = (Integer) data.get("it_ty_id");
+        this.itemTypeName = (String) data.get("name");
+        this.description = (String) data.get("description");
     }
+
 
     // --- Active Record Helper ---
     private void executeUpdate(String field, Object value) {
         if (this.itTyId != null) {
             Map<String, Object> updates = new LinkedHashMap<>();
             updates.put(field, value);
-            // Matches 'item_types' table and 'it_ty_id' PK from our SQL schema
             DBConnection.getInstance().updateField("item_types", "it_ty_id", this.itTyId, updates);
         }
     }
@@ -56,7 +57,7 @@ public class ItemType {
     public String getItemTypeName() { return itemTypeName; }
     public String getDescription() { return description; }
 
-    // --- Database Operations ---
+    // --- Active Record Logic ---
 
     public boolean save() {
         if (this.itTyId != null) return false;
@@ -73,9 +74,35 @@ public class ItemType {
         return false;
     }
 
+    public void refresh() {
+        if (this.itTyId == null) return;
+
+        // Uses the generic fetchRow helper
+        Map<String, Object> data = DBConnection.getInstance().fetchRow("item_types", "it_ty_id", this.itTyId);
+
+        if (data != null) {
+            this.itemTypeName = (String) data.get("name");
+            this.description = (String) data.get("description");
+        }
+    }
+
     @Override
     public String toString() {
-        return String.format("ID: %d, Name: %s, Description: %s",
-                itTyId, itemTypeName, (description != null ? description : "No description available"));
+        return itemTypeName; // Useful for ComboBox display
+    }
+
+    public static void main(String[] args) {
+        DBConnection.initialize("localhost", "root", "", "masdewotrue");
+        new ItemType("Adapter", "").save();
+        new ItemType("L Plate", "").save();
+        new ItemType("Silicone", "").save();
+        new ItemType("Batre", "").save();
+        new ItemType("Strap", "").save();
+        new ItemType("Memory", "").save();
+        new ItemType("Cleaning Kit", "").save();
+        new ItemType("Studio", "").save();
+        new ItemType("Efek Foto", "").save();
+        new ItemType("Acc", "").save();
+        new ItemType("Kotak Musik", "").save();
     }
 }

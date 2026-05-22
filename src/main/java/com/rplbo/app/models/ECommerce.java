@@ -22,23 +22,32 @@ public class ECommerce {
     }
 
     /**
-     * Constructor for loading from Database
+     * Constructor for loading from Database Map
+     * Matches the output of db.selectAll() or db.fetchRow()
      */
-    public ECommerce(Integer ecomId, String ecomName, double ecomPlatformFee, String platformURL) {
-        this.ecomId = ecomId;
-        this.ecomName = ecomName;
-        this.ecomPlatformFee = ecomPlatformFee;
-        this.platformURL = platformURL;
+    public ECommerce(Map<String, Object> data) {
+        this.ecomId = (Integer) data.get("ecom_id");
+        this.ecomName = (String) data.get("ecom_name");
+        // SQL Decimals come back as Number/Double/Float; cast safely
+        this.ecomPlatformFee = ((Number) data.get("ecom_platform_fee")).doubleValue();
+        this.platformURL = (String) data.get("platform_url");
     }
+    
+    // --- Active Record Logic ---
+    public boolean save() {
+        if (this.ecomId != null) return false;
 
-    // --- Active Record Helper ---
-    private void executeUpdate(String field, Object value) {
-        if (this.ecomId != null) {
-            Map<String, Object> updates = new LinkedHashMap<>();
-            updates.put(field, value);
-            // Replicates: self.getDbConn.updateField("ecommerces", "id", self.getEcomId, ...)
-            DBConnection.getInstance().updateField("ecommerces", "ecom_id", this.ecomId, updates);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("ecom_name", this.ecomName);
+        data.put("ecom_platform_fee", this.ecomPlatformFee);
+        data.put("platform_url", this.platformURL);
+
+        Integer newId = DBConnection.getInstance().insertIntoTableAndGetId("ecommerces", data);
+        if (newId != null) {
+            this.ecomId = newId;
+            return true;
         }
+        return false;
     }
 
     // --- Setters (Triggers DB Update) ---
@@ -67,20 +76,24 @@ public class ECommerce {
 
     // --- Logic Methods ---
 
-    /**
-     * Replicates your refresh() logic
-     */
     public void refresh() {
         if (this.ecomId == null) return;
 
-        try (ResultSet rs = DBConnection.getInstance().fetchOneByKeyColumn("*", "ecommerces", "ecom_id", this.ecomId)) {
-            if (rs != null && rs.next()) {
-                this.ecomName = rs.getString("ecom_name");
-                this.ecomPlatformFee = rs.getDouble("ecom_platform_fee");
-                this.platformURL = rs.getString("platform_url");
-            }
-        } catch (SQLException e) {
-            System.err.println("Error refreshing ECommerce: " + e.getMessage());
+        // Uses the generic fetchRow helper (as discussed in Customer refactor)
+        Map<String, Object> data = DBConnection.getInstance().fetchRow("ecommerces", "ecom_id", this.ecomId);
+
+        if (data != null) {
+            this.ecomName = (String) data.get("ecom_name");
+            this.ecomPlatformFee = ((Number) data.get("ecom_platform_fee")).doubleValue();
+            this.platformURL = (String) data.get("platform_url");
+        }
+    }
+
+    private void executeUpdate(String field, Object value) {
+        if (this.ecomId != null) {
+            Map<String, Object> updates = new LinkedHashMap<>();
+            updates.put(field, value);
+            DBConnection.getInstance().updateField("ecommerces", "ecom_id", this.ecomId, updates);
         }
     }
 
@@ -94,25 +107,6 @@ public class ECommerce {
         details.put("Platform Fee", ecomPlatformFee);
         details.put("URL", platformURL);
         return details;
-    }
-
-    /**
-     * Saves a new ECommerce record to the DB and handles result
-     */
-    public boolean save() {
-        if (this.ecomId != null) return false;
-
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("ecom_name", ecomName);
-        data.put("ecom_platform_fee", ecomPlatformFee);
-        data.put("platform_url", platformURL);
-
-        Integer newId = DBConnection.getInstance().insertIntoTableAndGetId("ecommerces", data);
-        if (newId != null) {
-            this.ecomId = newId;
-            return true;
-        }
-        return false;
     }
 
     @Override

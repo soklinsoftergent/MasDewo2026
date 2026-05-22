@@ -18,19 +18,18 @@ public class Role {
     }
 
     /**
-     * Constructor for loading an existing Role from the Database
+     * Constructor for loading from Database Map
+     * Matches the output of db.selectAll() or db.fetchRow()
      */
-    public Role(Integer roleId, String roleName) {
-        this.roleId = roleId;
-        this.roleName = roleName;
+    public Role(Map<String, Object> data) {
+        this.roleId = (Integer) data.get("role_id");
+        this.roleName = (String) data.get("role_name");
     }
 
-    // --- Active Record Helper ---
     private void executeUpdate(String field, Object value) {
         if (this.roleId != null) {
             Map<String, Object> updates = new LinkedHashMap<>();
             updates.put(field, value);
-            // Matches 'roles' table and 'role_id' primary key from our SQL schema
             DBConnection.getInstance().updateField("roles", "role_id", this.roleId, updates);
         }
     }
@@ -55,10 +54,6 @@ public class Role {
 
     // --- Database Operations ---
 
-    /**
-     * Replicates save() logic found in other models.
-     * Inserts the role and retrieves the generated ID.
-     */
     public boolean save() {
         if (this.roleId != null) return false;
 
@@ -73,25 +68,19 @@ public class Role {
         return false;
     }
 
-    /**
-     * Replicates refresh() logic.
-     */
     public void refresh() {
         if (this.roleId == null) return;
 
-        try (ResultSet rs = DBConnection.getInstance().fetchOneByKeyColumn("*", "roles", "role_id", this.roleId)) {
-            if (rs != null && rs.next()) {
-                this.roleName = rs.getString("role_name");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        // Use the generic fetchRow helper from DBConnection
+        Map<String, Object> data = DBConnection.getInstance().fetchRow("roles", "role_id", this.roleId);
+
+        if (data != null) {
+            this.roleName = (String) data.get("role_name");
         }
     }
 
     @Override
     public String toString() {
-        return (roleId != null) ?
-                String.format("Role(ID: %d, Name: %s)", roleId, roleName) :
-                String.format("Role(Name: %s)", roleName);
+        return roleName; // Returns "Admin" or "Staff" for UI display
     }
 }

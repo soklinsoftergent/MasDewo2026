@@ -4,8 +4,7 @@ import com.rplbo.app.db.DBConnection;
 import com.rplbo.app.models.User;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 public class UserDAO {
     private final DBConnection db;
@@ -19,37 +18,25 @@ public class UserDAO {
      */
     public User getUserByUsername(String username) {
         // Fetching all columns from 'users' table
-        try (ResultSet rs = db.fetchOneByKeyColumn("*", "users", "username", username)) {
-            if (rs != null && rs.next()) {
-                // IMPORTANT: In your SQL, role_id 1 is Admin, 2 is Staff
-                boolean isAdmin = (rs.getInt("role_id") == 1);
-
-                return new User(
-                        rs.getString("username"),
-                        rs.getString("email"),
-                        rs.getString("password_hash"),
-                        rs.getString("phonenumber"),
-                        isAdmin,
-                        rs.getInt("user_id")
-                );
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        //            db.ensureConnection();
+        Map <String, Object> result = db.fetchRow("users", "username", username);
+        if (result != null) {
+            return new User(result);
+        } else {
+            System.out.println("No user found with username: " + username);
+            return null;
         }
-        return null;
     }
 
-    /**
-     * Saves a new user to the database
-     */
-    public boolean saveUser(User user) {
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("username", user.getUsername());
-        data.put("email", user.getUserEmail());
-        data.put("phonenumber", user.getUserPhoneNumber());
-        data.put("password_hash", user.getUserPasswdHash());
-        data.put("role_id", user.isAdmin() ? 1 : 2);
+    public List<User> getAllUsers() {
+        List<User> users = new ArrayList<>();
+        // Uses your generic selectAll helper!
+        List<Map<String, Object>> data = DBConnection.getInstance().selectAll("users");
 
-        return db.insertIntoTable("users", data);
+        for (Map<String, Object> row : data) {
+            users.add(new User(row)); // Use the Map-constructor we built
+        }
+        return users;
     }
+
 }

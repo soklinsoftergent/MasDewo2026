@@ -36,22 +36,29 @@ public class Sale {
     }
 
     /**
-     * Constructor for loading from the Database (Full attributes)
+     * Constructor for loading from Database Map
+     * Matches the output of db.selectAll("sales")
      */
-    public Sale(Integer saleId, int customerId, int userId, int ecommerceId,
-                LocalDateTime date, double totalAmount, boolean isPaid,
-                boolean isCancelled, String paymentMethod, double logisticsFee, double profit) {
-        this.saleId = saleId;
-        this.customerId = customerId;
-        this.userId = userId;
-        this.ecommerceId = ecommerceId;
-        this.date = date;
-        this.totalAmount = totalAmount;
-        this.isPaid = isPaid;
-        this.isCancelled = isCancelled;
-        this.paymentMethod = paymentMethod;
-        this.logisticsFee = logisticsFee;
-        this.profit = profit;
+    public Sale(Map<String, Object> data) {
+        this.saleId = (Integer) data.get("sale_id");
+        this.customerId = ((Number) data.get("cust_id")).intValue();
+        this.userId = ((Number) data.get("user_id")).intValue();
+
+        // Handle optional ecom_id safely
+        Object ecom = data.get("ecom_id");
+        this.ecommerceId = (ecom != null) ? ((Number) ecom).intValue() : 0;
+
+        this.totalAmount = ((Number) data.get("total_amount")).doubleValue();
+        this.profit = ((Number) data.get("profit")).doubleValue();
+        this.logisticsFee = ((Number) data.get("logistics_fee")).doubleValue();
+
+        // MySQL TINYINT(1) maps to Boolean in most drivers
+        this.isPaid = (Boolean) data.get("is_paid");
+        this.isCancelled = (Boolean) data.get("is_cancelled");
+        this.paymentMethod = (String) data.get("payment_method");
+
+        Object createdAt = data.get("created_at");
+        this.date = (createdAt instanceof LocalDateTime) ? (LocalDateTime) createdAt : LocalDateTime.now();
     }
 
     // --- Internal Active Record Helper ---
@@ -59,52 +66,21 @@ public class Sale {
         if (this.saleId != null) {
             Map<String, Object> updates = new LinkedHashMap<>();
             updates.put(field, value);
-            // Matches 'sales' table and 'sale_id' primary key from our SQL schema
             DBConnection.getInstance().updateField("sales", "sale_id", this.saleId, updates);
         }
     }
-
     // --- Setters (Updates DB immediately) ---
 
-    public void setEcommerceId(int ecommerceId) {
-        this.ecommerceId = ecommerceId;
-        executeUpdate("ecom_id", ecommerceId);
-    }
+    public void setEcommerceId(int ecommerceId) {this.ecommerceId = ecommerceId;executeUpdate("ecom_id", ecommerceId);}
+    public void setCustomerId(int customerId) {this.customerId = customerId;executeUpdate("cust_id", customerId);}
+    public void setUserId(int userId) {this.userId = userId;executeUpdate("user_id", userId);}
+    public void setDate(LocalDateTime date) {this.date = date;executeUpdate("created_at", date);}
+    public void setTotalAmount(double totalAmount) {this.totalAmount = totalAmount;executeUpdate("total_amount", totalAmount);}
+    public void setPaid(boolean paid) {this.isPaid = paid;executeUpdate("is_paid", paid);}
+    public void setCancelled(boolean cancelled) {this.isCancelled = cancelled;executeUpdate("is_cancelled", cancelled);}
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod;executeUpdate("payment_method", paymentMethod);}
+    public void setProfit(double profit) { this.profit = profit; executeUpdate("profit", profit); }
 
-    public void setCustomerId(int customerId) {
-        this.customerId = customerId;
-        executeUpdate("cust_id", customerId);
-    }
-
-    public void setUserId(int userId) {
-        this.userId = userId;
-        executeUpdate("user_id", userId);
-    }
-
-    public void setDate(LocalDateTime date) {
-        this.date = date;
-        executeUpdate("created_at", date);
-    }
-
-    public void setTotalAmount(double totalAmount) {
-        this.totalAmount = totalAmount;
-        executeUpdate("total_amount", totalAmount);
-    }
-
-    public void setPaid(boolean paid) {
-        this.isPaid = paid;
-        executeUpdate("is_paid", paid);
-    }
-
-    public void setCancelled(boolean cancelled) {
-        this.isCancelled = cancelled;
-        executeUpdate("is_cancelled", cancelled);
-    }
-
-    public void setPaymentMethod(String paymentMethod) {
-        this.paymentMethod = paymentMethod;
-        executeUpdate("payment_method", paymentMethod);
-    }
 
     // --- Getters ---
 
@@ -114,12 +90,12 @@ public class Sale {
     public boolean isPaid() { return isPaid; }
     public boolean isCancelled() { return isCancelled; }
     public LocalDateTime getDate() { return date; }
+    public double getProfit() { return profit; }
+    public int getUserId() { return userId; }
+
 
     // --- Database Operations ---
 
-    /**
-     * Replicates your save() logic
-     */
     public boolean save() {
         if (this.saleId != null) return false;
 
@@ -143,27 +119,14 @@ public class Sale {
         return false;
     }
 
-    /**
-     * Replicates your refresh() logic
-     */
     public void refresh() {
         if (this.saleId == null) return;
-
-        try (ResultSet rs = DBConnection.getInstance().fetchOneByKeyColumn("*", "sales", "sale_id", this.saleId)) {
-            if (rs != null && rs.next()) {
-                this.customerId = rs.getInt("cust_id");
-                this.userId = rs.getInt("user_id");
-                this.ecommerceId = rs.getInt("ecom_id");
-                this.totalAmount = rs.getDouble("total_amount");
-                this.isPaid = rs.getBoolean("is_paid");
-                this.isCancelled = rs.getBoolean("is_cancelled");
-                this.paymentMethod = rs.getString("payment_method");
-                this.logisticsFee = rs.getDouble("logistics_fee");
-                this.profit = rs.getDouble("profit");
-                this.date = rs.getObject("created_at", LocalDateTime.class);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        Map<String, Object> data = DBConnection.getInstance().fetchRow("sales", "sale_id", this.saleId);
+        if (data != null) {
+            this.totalAmount = ((Number) data.get("total_amount")).doubleValue();
+            this.isPaid = (Boolean) data.get("is_paid");
+            this.isCancelled = (Boolean) data.get("is_cancelled");
+            this.profit = ((Number) data.get("profit")).doubleValue();
         }
     }
 
@@ -172,4 +135,8 @@ public class Sale {
         return String.format("Sale ID: %d, Customer: %d, Total: %.2f, Paid: %b, Profit: %.2f",
                 saleId, customerId, totalAmount, isPaid, profit);
     }
+
+//    public static void main(String[] args) {
+//        Sale sale
+//    }
 }

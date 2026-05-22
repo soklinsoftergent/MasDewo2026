@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<StackPane prefHeight="500.0" prefWidth="380.0" style="-fx-background-color: #1f1f1f;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.rplbo.app.ui.LoginWindowController">
+
+    <children>
+        <VBox alignment="CENTER" maxWidth="380.0" spacing="25.0" style="-fx-background-color: #4d667b; -fx-background-radius: 15; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 10, 0, 0, 0);">
+            <padding>
+                <Insets bottom="40.0" left="40.0" right="40.0" top="40.0" />
+            </padding>
+
+            <children>
+                <!-- Header Section -->
+                <VBox alignment="CENTER" spacing="5.0">
+                    <children>
+                        <Label style="-fx-text-fill: white; -fx-font-size: 28px; -fx-font-weight: 800;" text="MasDewo Store" />
+                        <Label style="-fx-text-fill: #dbe7ef; -fx-font-size: 13px; -fx-font-weight: 600;" text="Manajemen Inventory &amp; Kas" />
+                    </children>
+                </VBox>
+
+                <!-- Input Section -->
+                <VBox spacing="15.0">
+                    <children>
+                        <VBox spacing="5.0">
+                            <children>
+                                <Label style="-fx-text-fill: #dbe7ef; -fx-font-weight: 700; -fx-font-size: 12px;" text="Username" />
+                                <TextField fx:id="usernameField" promptText="Masukkan username..." style="-fx-background-color: #3d5062; -fx-text-fill: white; -fx-prompt-text-fill: #8a98a4; -fx-background-radius: 5; -fx-padding: 10;" />
+                            </children>
+                        </VBox>
+
+                        <VBox spacing="5.0">
+                            <children>
+                                <Label style="-fx-text-fill: #dbe7ef; -fx-font-weight: 700; -fx-font-size: 12px;" text="Password" />
+                                <PasswordField fx:id="passwordField" promptText="Masukkan password..." style="-fx-background-color: #3d5062; -fx-text-fill: white; -fx-prompt-text-fill: #8a98a4; -fx-background-radius: 5; -fx-padding: 10;" />
+                            </children>
+                        </VBox>
+                    </children>
+                </VBox>
+
+                <!-- Action Section -->
+                <VBox alignment="CENTER" spacing="15.0">
+                    <children>
+                        <Button fx:id="loginButton" maxWidth="1.7976931348623157E308" onAction="#handleLogin" style="-fx-background-color: #79e07c; -fx-text-fill: #1f2937; -fx-font-weight: 800; -fx-font-size: 14px; -fx-background-radius: 5; -fx-cursor: hand; -fx-padding: 12;" text="LOGIN" />
+
+                        <Label fx:id="statusLabel" style="-fx-text-fill: #ff8e8e; -fx-font-size: 12px; -fx-font-weight: 600;" textAlignment="CENTER" wrapText="true" />
+                    </children>
+                </VBox>
+            </children>
+        </VBox>
+    </children>
+</StackPane>

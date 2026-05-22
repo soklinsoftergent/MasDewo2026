@@ -25,14 +25,19 @@ public class Expense {
     }
 
     /**
-     * Constructor for loading from the Database
+     * Constructor for loading from Database Map
+     * Matches the output of db.selectAll() or db.fetchRow()
      */
-    public Expense(Integer id, int userId, double total, String description, LocalDateTime createdAt) {
-        this.expenseId = id;
-        this.userId = userId;
-        this.total = total;
-        this.description = description;
-        this.createdAt = createdAt;
+    public Expense(Map<String, Object> data) {
+        this.expenseId = (Integer) data.get("expense_id");
+        this.userId = (Integer) data.get("user_id");
+        // Safe casting for numeric types
+        this.total = ((Number) data.get("total")).doubleValue();
+        this.description = (String) data.get("description");
+
+        // Handle date casting
+        Object date = data.get("created_at");
+        this.createdAt = (date instanceof LocalDateTime) ? (LocalDateTime) date : LocalDateTime.now();
     }
 
     // --- Active Record Helper ---
@@ -40,7 +45,6 @@ public class Expense {
         if (this.expenseId != null) {
             Map<String, Object> updates = new LinkedHashMap<>();
             updates.put(field, value);
-            // Uses 'expense_id' from our SQL schema
             DBConnection.getInstance().updateField("expenses", "expense_id", this.expenseId, updates);
         }
     }
@@ -73,9 +77,7 @@ public class Expense {
     // --- Persistence & Logic ---
 
     public boolean save() {
-        if (this.expenseId != null) {
-            throw new IllegalStateException("Expense already saved with ID: " + this.expenseId);
-        }
+        if (this.expenseId != null) return false;
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("user_id", this.userId);
@@ -94,15 +96,14 @@ public class Expense {
     public void refresh() {
         if (this.expenseId == null) return;
 
-        try (ResultSet rs = DBConnection.getInstance().fetchOneByKeyColumn("*", "expenses", "expense_id", this.expenseId)) {
-            if (rs != null && rs.next()) {
-                this.userId = rs.getInt("user_id");
-                this.total = rs.getDouble("total");
-                this.description = rs.getString("description");
-                this.createdAt = rs.getObject("created_at", LocalDateTime.class);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        // Use the generic fetchRow helper from DBConnection
+        Map<String, Object> data = DBConnection.getInstance().fetchRow("expenses", "expense_id", this.expenseId);
+
+        if (data != null) {
+            this.userId = (Integer) data.get("user_id");
+            this.total = ((Number) data.get("total")).doubleValue();
+            this.description = (String) data.get("description");
+            this.createdAt = (LocalDateTime) data.get("created_at");
         }
     }
 
@@ -118,10 +119,9 @@ public class Expense {
         map.put("created_at", createdAt);
         return map;
     }
-
+    
     @Override
     public String toString() {
-        return String.format("Expense[ID=%d, User=%d, Total=%.2f, Desc=%s]",
-                expenseId, userId, total, description);
+        return String.format("Expense[ID=%d, User=%d, Total=%.2f]", expenseId, userId, total);
     }
 }
