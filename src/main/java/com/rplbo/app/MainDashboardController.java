@@ -67,118 +67,30 @@ public class MainDashboardController {
 
     @FXML public void showDashboard() {
         Node node = loadView("/com/rplbo/app/pages/DashboardPage.fxml");
-        updateDashboardMetrics(node);
         renderView(node, "Dashboard", dashboardButton);
     }
 
     @FXML public void showInventory() {
         Node node = loadView("/com/rplbo/app/pages/InventoryPage.fxml");
-        populateInventoryTable(node);
         renderView(node, "Inventory", inventoryButton);
     }
 
     @FXML public void showSales() {
         Node node = loadView("/com/rplbo/app/pages/SalesPage.fxml");
-        populateSalesTable(node);
         renderView(node, "Penjualan", salesButton);
     }
 
     @FXML public void showFinance() {
         Node node = loadView("/com/rplbo/app/pages/FinancePage.fxml");
-        populateFinanceTable(node);
         renderView(node, "Finance & Kas", financeButton);
     }
 
     @FXML public void showEmployees() {
         Node node = loadView("/com/rplbo/app/pages/EmployeesPage.fxml");
-        populateEmployeeTable(node);
         renderView(node, "Karyawan", employeeButton);
     }
 
     // --- DATA PLUMBING (DAO -> FXML) ---
-
-    private void updateDashboardMetrics(Node root) {
-        Label rev = (Label) root.lookup("#dashboardRevenueLabel");
-        Label trx = (Label) root.lookup("#dashboardTransactionsLabel");
-        VBox criticalBox = (VBox) root.lookup("#criticalItemsListBox");
-
-        // --- THE FIX: ADD NULL CHECKS ---
-        if (criticalBox == null) {
-            System.err.println("FXML ERROR: Could not find #criticalItemsListBox in DashboardPage.fxml");
-            return; // Stop here so we don't crash
-        }
-
-        BarChart<String, Number> chart = (BarChart) root.lookup("#inventoryStockChart");
-        PieChart pie = (PieChart) root.lookup("#platformPieChart");
-
-        // Set Numbers
-        rev.setText(idr.format(saleDAO.getTotalRevenue()));
-        trx.setText(String.valueOf(saleDAO.getTransactionCount()));
-
-        // Populate Critical List
-        List<Item> critical = itemDAO.getLowStockItems(5);
-        criticalBox.getChildren().clear();
-        critical.forEach(i -> criticalBox.getChildren().add(new Label("⚠️ " + i.getName() + " (" + i.getStock() + ")")));
-        criticalStockBadge.setText(critical.size() + " stok kritis");
-
-        // Populate Bar Chart
-        XYChart.Series<String, Number> series = new XYChart.Series<>();
-        itemDAO.getLowStockItems(10).forEach(i -> series.getData().add(new XYChart.Data<>(i.getName(), i.getStock())));
-        chart.getData().setAll(series);
-
-        // Populate Pie Chart (Categories)
-        ObservableList<PieChart.Data> pieData = FXCollections.observableArrayList();
-        itemDAO.getCategoryDistribution().forEach((cat, count) -> pieData.add(new PieChart.Data(cat, count)));
-        pie.setData(pieData);
-    }
-
-    private void populateInventoryTable(Node root) {
-        globalInventorySearchField = (TextField) root.lookup("#inventorySearchField");
-        TableView<Item> table = (TableView<Item>) root.lookup("#inventoryTable");
-
-        // Map Columns (Assuming your UI lead named them correctly in FXML)
-        ((TableColumn<Item, String>) table.getColumns().get(0)).setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getName()));
-        ((TableColumn<Item, String>) table.getColumns().get(2)).setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getStock())));
-        ((TableColumn<Item, String>) table.getColumns().get(4)).setCellValueFactory(d -> new SimpleStringProperty(idr.format(d.getValue().getSellingPrice())));
-
-        table.setItems(FXCollections.observableArrayList(itemDAO.getAllItems()));
-
-        // Wire the search bar to your Trie!
-        globalInventorySearchField.textProperty().addListener((obs, old, val) -> {
-            table.setItems(FXCollections.observableArrayList(itemDAO.searchFast(val)));
-        });
-    }
-
-    private void populateSalesTable(Node root) {
-        TableView<Map<String, Object>> table = (TableView<Map<String, Object>>) root.lookup("#salesTable");
-
-        // Invoice Column
-        ((TableColumn<Map<String, Object>, String>) table.getColumns().get(0)).setCellValueFactory(d ->
-                new SimpleStringProperty("INV-" + d.getValue().get("sale_id")));
-
-        // Total Column
-        ((TableColumn<Map<String, Object>, String>) table.getColumns().get(3)).setCellValueFactory(d ->
-                new SimpleStringProperty(idr.format(((Number)d.getValue().get("total_amount")).doubleValue())));
-
-        table.setItems(FXCollections.observableArrayList(saleDAO.getAllSalesDetailed()));
-    }
-
-    private void populateFinanceTable(Node root) {
-        Label bal = (Label) root.lookup("#cashBalanceLabel");
-        bal.setText(idr.format(financeDAO.getKasBalance()));
-
-        TableView<Map<String, Object>> table = (TableView) root.lookup("#financeTable");
-        table.setItems(FXCollections.observableArrayList(financeDAO.getRecentTransactions()));
-    }
-
-    private void populateEmployeeTable(Node root) {
-        VBox box = (VBox) root.lookup("#employeeListBox");
-        box.getChildren().clear();
-        userDAO.getAllUsers().forEach(u -> {
-            box.getChildren().add(new Label("👤 " + u.getUsername() + (u.isAdmin() ? " [ADMIN]" : " [STAFF]")));
-        });
-    }
-
     // --- UI HELPERS ---
 
     private Node loadView(String path) {

@@ -3,6 +3,7 @@ package com.rplbo.app.dao;
 import com.rplbo.app.db.DBConnection;
 import java.sql.*;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -32,5 +33,21 @@ public class StockMovementDAO {
 
         // Use a custom query method in your DBConnection...
         return DBConnection.getInstance().selectAllCustom(sql, itemId);
+    }
+
+    public void logChange(int itemId, int userId, int quantity, String reason) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("item_id", itemId);
+        data.put("user_id", userId);
+        data.put("quantity_changed", quantity);
+        data.put("reason", reason);
+
+        boolean success = DBConnection.getInstance().insertIntoTable("stock_movement_logs", data);
+
+        if (success) {
+            System.out.println("[Audit] Log manual tercatat: " + reason + " (" + quantity + ")");
+        } else {
+            System.err.println("[Audit] Gagal mencatat log manual untuk item ID: " + itemId);
+        }
     }
 }

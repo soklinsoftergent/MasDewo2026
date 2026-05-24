@@ -157,5 +157,38 @@ public class EmployeesController {
         };
     }
 
+    private void handleToggleStatus(User user) {
+        String statusBaru = user.isActive() ? "menonaktifkan" : "mengaktifkan kembali";
 
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Konfirmasi status");
+        alert.setHeaderText(null);
+        alert.setContentText("Apakah anda yakin ingin " + statusBaru + " karyawan: " + user.getUsername() + "?");
+
+        alert.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.YES) {
+                user.setActive(!user.isActive());
+                loadEmployeeData();
+                System.out.println("Status " + user.getUsername() + " diubah menjadi: " + user.isActive());
+            }
+        });
+    }
+
+    private void handleResetPassword(User user) {
+        String passwordDefault = "masdewo123";
+
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Reset password");
+        alert.setHeaderText("Konfirmasi reset password");
+        alert.setContentText("Password untuk " + user.getUsername() + " akan direset menjadi: " + passwordDefault);
+
+        alert.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.YES) {
+                String newHash = org.mindrot.jbcrypt.BCrypt.hashpw(passwordDefault, org.mindrot.jbcrypt.BCrypt.gensalt());
+                user.setUserPasswdHash(newHash);
+                Alert success = new Alert(Alert.AlertType.INFORMATION, "Password berhasil direset!");
+                success.show();
+            }
+        });
+    }
 }

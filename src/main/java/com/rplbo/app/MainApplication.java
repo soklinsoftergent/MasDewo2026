@@ -15,24 +15,36 @@ public class MainApplication extends Application {
         // The DB is already initialized by Main.java before launch()
         // So we go straight to loading the UI.
 
-        URL dashboardUrl = getClass().getResource("/com/rplbo/app/pages/MainDashboard.fxml");
-
-        if (dashboardUrl == null) {
-            // Helpful error for the "Fuckers" on the team
-            throw new IOException("FATAL: MainDashboard.fxml not found! Check src/main/resources/com/rplbo/app/pages/");
-        }
-
-        FXMLLoader loader = new FXMLLoader(dashboardUrl);
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/rplbo/app/pages/LoginWindow.fxml"));
         Parent root = loader.load();
 
         Scene scene = new Scene(root);
-        stage.setTitle("MasDewo Management System - Dashboard");
-
-        // Responsive size for the Dashboard
-        stage.setMinWidth(1200);
-        stage.setMinHeight(800);
-
+        stage.setTitle("OmniDewo");
+        stage.setResizable(false);
         stage.setScene(scene);
         stage.show();
+//        URL dashboardUrl = getClass().getResource("/com/rplbo/app/pages/MainDashboard.fxml");
+//
+//        if (dashboardUrl == null) {
+//            // Helpful error for the "Fuckers" on the team
+//            throw new IOException("FATAL: MainDashboard.fxml not found! Check src/main/resources/com/rplbo/app/pages/");
+//        }
+//
+//        FXMLLoader loader = new FXMLLoader(dashboardUrl);
+//        Parent root = loader.load();
+//
+//        Scene scene = new Scene(root);
+//        stage.setTitle("MasDewo Management System - Dashboard");
+//
+//        // Responsive size for the Dashboard
+//        stage.setMinWidth(1200);
+//        stage.setMinHeight(800);
+//
+//        stage.setScene(scene);
+//        stage.show();
+    }
+
+    public static void main(String[] args) {
+        launch(args);
     }
 }

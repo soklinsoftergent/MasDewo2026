@@ -42,7 +42,8 @@ public class SaleDAO {
 
     public double getTotalRevenue() {
         Object res = db.fetchOneByKeyColumn("SUM(total_amount)", "sales", "is_cancelled", 0);
-        return res != null ? ((Number) res).doubleValue() : 0.0;
+        if (res == null) return 0.0;
+        return Double.parseDouble(res.toString());
     }
 
     public double getTotalProfit() {
@@ -52,7 +53,8 @@ public class SaleDAO {
 
     public int getTransactionCount() {
         Object res = db.fetchOneByKeyColumn("COUNT(*)", "sales", "is_cancelled", 0);
-        return res != null ? ((Number) res).intValue() : 0;
+        if (res == null) return 0;
+        return Integer.parseInt(res.toString());
     }
 
     public List<Map<String, Object>> getAllSalesWithDetails() {

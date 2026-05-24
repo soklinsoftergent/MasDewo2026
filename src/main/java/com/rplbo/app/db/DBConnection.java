@@ -194,7 +194,7 @@ public class DBConnection {
      * Replicates your fetchOneByKeyColumn
      * Usage: fetchOne("name", "items", "id", 1)
      */
-    public String fetchOneByKeyColumn(String tableColumn, String tableName, String keyColumn, Object keyValue) {
+    public Object fetchOneByKeyColumn(String tableColumn, String tableName, String keyColumn, Object keyValue) {
         String sql = String.format("SELECT %s FROM %s WHERE %s = ?", tableColumn, tableName, keyColumn);
         Connection conn = null;
         try {
@@ -503,16 +503,20 @@ public class DBConnection {
         try {
             conn = getConnection();
 
-            try (PreparedStatement pstmt = conn.prepareStatement(sql);
-            ResultSet rs = pstmt.executeQuery()) {
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setObject(1, keyValue);
 //                ensureConnection();
-                if (rs.next()) {
-                    ResultSetMetaData meta = rs.getMetaData();
-                    Map<String, Object> row = new LinkedHashMap<>();
-                    for (int i = 1; i <= meta.getColumnCount(); i++) {
-                        row.put(meta.getColumnLabel(i), rs.getObject(i));
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    if (rs.next()) {
+                        ResultSetMetaData meta = rs.getMetaData();
+                        Map<String, Object> row = new LinkedHashMap<>();
+                        for (int i = 1; i <= meta.getColumnCount(); i++) {
+                            row.put(meta.getColumnLabel(i), rs.getObject(i));
+                        }
+                        return row;
                     }
-                    return row;
+                } catch (SQLException e) {
+                    e.printStackTrace();
                 }
             }
         } catch (SQLException e) {
@@ -564,15 +568,12 @@ public class DBConnection {
         return null;
     }
 
-//    public static void main(String[] args) {
-//        DBConnection.initialize();
-//        DBConnection db = DBConnection.getInstance();
-//        System.out.println(db.selectAll("users"));
-//        db.shutdown();
-//        System.out.println(db.fetchRow("users", "username", "admin"));
-//        System.out.println(db.fetchOneByKeyColumn("email", "users", "username", "admin"));
-//        System.out.println(db.fetchOneByKeyColumn("user", "nilaimahasiswa", "NIM", "71220907"));
-//    }
+    public static void main(String[] args) {
+        DBConnection.initialize();
+        DBConnection db = DBConnection.getInstance();
+        System.out.println(db.selectAll("users"));
+        db.shutdown();
+    }
 }
 
 //EXAMPLE USAGE

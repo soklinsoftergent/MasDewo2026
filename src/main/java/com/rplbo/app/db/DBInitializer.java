@@ -35,9 +35,13 @@ public class DBInitializer {
         DBConnection db = DBConnection.getInstance();
 
         // Only insert if roles are empty
-        if (countRows("roles") == 0) {
-            db.insertIntoTable("roles", Map.of("role_id", 1, "role_name", "Admin"));
-            db.insertIntoTable("roles", Map.of("role_id", 2, "role_name", "Staff"));
+        try {
+            if (countRows("roles") == 0) {
+                db.insertIntoTable("roles", Map.of("role_id", 1, "role_name", "Admin"));
+                db.insertIntoTable("roles", Map.of("role_id", 2, "role_name", "Staff"));
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
 
         // Only insert if kas is empty
@@ -48,7 +52,7 @@ public class DBInitializer {
         // 3. Default Admin User
         UserDAO userDAO = new UserDAO();
         if (userDAO.getAllUsers().isEmpty()) {
-            System.out.println("👤 No users found. Generating initial admin account...");
+            System.out.println("No users found. Generating initial admin account...");
             // Use your NEW ActiveRecord constructor: username, email, password, phone, isAdmin
             User admin = new User("admin", "admin@masdewo.local", "Supaidaa-M4n", "000", true);
             admin.save(); // This automatically hashes the password and inserts to DB

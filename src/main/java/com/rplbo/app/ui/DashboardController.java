@@ -8,6 +8,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.chart.BarChart;
+import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.PieChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Label;
@@ -104,12 +105,19 @@ public class DashboardController {
      */
     private void loadInventoryBarChart() {
         inventoryStockChart.getData().clear();
+
+        if (inventoryStockChart.getXAxis() instanceof CategoryAxis xAxis) {
+            xAxis.getCategories().clear();
+        }
+
         XYChart.Series<String, Number> series = new XYChart.Series<>();
+        series.setName("Jumlah stock");
 
         List<Item> items = itemDAO.getAllItems();
         // Limit to 8 items so the chart isn't crowded
         items.stream().limit(8).forEach(item -> {
-            series.getData().add(new XYChart.Data<>(item.getSku(), item.getStock()));
+            String label = item.getSku() != null ? item.getSku() : item.getName();
+            series.getData().add(new XYChart.Data<>(label, item.getStock()));
         });
 
         inventoryStockChart.getData().add(series);

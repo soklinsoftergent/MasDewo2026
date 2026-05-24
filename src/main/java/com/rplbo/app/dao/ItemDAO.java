@@ -100,7 +100,13 @@ public class ItemDAO {
         Map<String, Integer> dist = new HashMap<>();
         String sql = "SELECT t.name, COUNT(i.id) FROM items i " +
                 "JOIN item_types t ON i.it_ty_id = t.it_ty_id GROUP BY t.name";
-        // Logic to run query and populate map...
+        // Logic to run query and populate map
+        List<Map<String, Object>> rows = DBConnection.getInstance().selectAllCustom(sql);
+        for (Map<String, Object> row : rows) {
+            String name = (String) row.get("name");
+            int count = Integer.parseInt(row.get("total").toString());
+            dist.put(name, count);
+        }
         return dist;
     }
 

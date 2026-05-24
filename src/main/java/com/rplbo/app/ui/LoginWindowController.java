@@ -7,6 +7,7 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -40,23 +41,40 @@ public class LoginWindowController {
             return;
         }
 
+        // Tampilkan status sedang memproses
+        statusLabel.setText("Sedang memverifikasi...");
+        statusLabel.setStyle("-fx-text-fill: #dbe7ef;");
+
         System.out.println("Logging in: " + username);
 
         AuthService authService = new AuthService();
 
         if (authService.authenticate(username, password)) {
             System.out.println("Login berhasil");
-
-            try {
-                Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("com/rplbo/app/pages/DashboardPage.fxml"));
-                Scene scene = new Scene(loader.load());
-                stage.setScene(scene);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            navigateToDashboard(actionEvent);
         } else {
-            statusLabel.setText("Username atau password salah!");
+            statusLabel.setText("Kredensial yang dimasukkan salah");
+            statusLabel.setStyle("-fx-text-fill: #ff8e8e;");
+        }
+    }
+
+    private void navigateToDashboard(ActionEvent actionEvent) {
+        try {
+            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/com/rplbo/app/pages/MainDashboard.fxml"));
+            Parent root = fxmlLoader.load();
+
+            Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
+
+            Scene scene = new Scene(root);
+            stage.setTitle("Dewa App");
+            stage.setResizable(true);
+            stage.setMinWidth(1100);
+            stage.setScene(scene);
+            stage.centerOnScreen();
+            stage.show();
+        } catch (IOException e) {
+            statusLabel.setText("Gagal memuat dashboard");
+            e.printStackTrace();
         }
     }
 

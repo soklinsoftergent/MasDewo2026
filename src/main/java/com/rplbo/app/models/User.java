@@ -1,9 +1,8 @@
 package com.rplbo.app.models;
 
 import com.rplbo.app.db.DBConnection;
-import com.rplbo.app.util.ValidationUtil;
 import org.mindrot.jbcrypt.BCrypt;
-import java.util.HashMap;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -42,7 +41,7 @@ public class User {
         this.userId = (Integer) data.get("user_id");
         this.username = (String) data.get("username");
         this.userEmail = (String) data.get("email");
-        this.userPhoneNumber = (String) data.get("phone_number");
+        this.userPhoneNumber = (String) data.get("phonenumber");
         this.userPasswdHash = (String) data.get("password_hash");
 
         // Role ID mapping: 1 = Admin, 2 = Staff
@@ -82,7 +81,7 @@ public class User {
         if (data != null) {
             this.username = (String) data.get("username");
             this.userEmail = (String) data.get("email");
-            this.userPhoneNumber = (String) data.get("phone_number");
+            this.userPhoneNumber = (String) data.get("phonenumber");
             int roleId = ((Number) data.get("role_id")).intValue();
             this.isAdmin = (roleId == 1);
         }
@@ -90,7 +89,7 @@ public class User {
 
     // --- SETTERS (Active Record Style: Updates DB immediately) ---
     public void setEmail(String email) { this.userEmail = email; executeUpdate("email", email); }
-    public void setPhoneNumber(String phone) { this.userPhoneNumber = phone; executeUpdate("phone_number", phone); }
+    public void setPhoneNumber(String phone) { this.userPhoneNumber = phone; executeUpdate("phonenumber", phone); }
     public void setAdmin(boolean admin) {this.isAdmin = admin;executeUpdate("role_id", admin ? 1 : 2);}
     public void setActive(boolean active) {this.isActive = active;executeUpdate("is_active", active);}
     public void setUsername(String newUsername) {this.username = newUsername;executeUpdate("username", newUsername);}
@@ -99,6 +98,7 @@ public class User {
     public void giveUserAdmin() {this.isAdmin = true;executeUpdate("role_id", 1); }
     public void rmUserAdmin() {this.isAdmin = false;executeUpdate("role_id", 2); }
     public void rmUserPhoneNumber() {this.userPhoneNumber = null;executeUpdate("phonenumber", null);}
+    public void setUserPasswdHash(String passwordHash) { this.userPasswdHash = passwordHash; executeUpdate("password_hash", passwordHash);}
 
     // --- GETTERS ---
 
@@ -119,7 +119,7 @@ public class User {
         data.put("username", this.username);
         data.put("email", this.userEmail);
         data.put("password_hash", this.userPasswdHash);
-        data.put("phone_number", this.userPhoneNumber);
+        data.put("phonenumber", this.userPhoneNumber);
         data.put("role_id", this.isAdmin ? 1 : 2);
         data.put("is_active", this.isActive);
         return data;
@@ -136,5 +136,11 @@ public class User {
                 isAdmin ? "Yes" : "No");
     }
 
-
+    public static void main(String[] args) {
+        DBConnection.initialize();
+        System.out.println(DBConnection.getInstance().selectAll("users"));
+        User newUser = new User("Dewa", "masdewo@gmail.com", "masdewo123", "082135317234", true);
+        newUser.save();
+        System.out.println(DBConnection.getInstance().selectAll("users"));
+    }
 }

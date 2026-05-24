@@ -11,7 +11,7 @@ public class AuthService {
     public boolean authenticate(String username, String password) {
         Map<String, Object> userData = DBConnection.getInstance().fetchRow("users", "username", username);
 
-        if (userData == null) {
+        if (userData != null) {
             String storedHash = (String) userData.get("password_hash");
 
             if (BCrypt.checkpw(password, storedHash)) {
