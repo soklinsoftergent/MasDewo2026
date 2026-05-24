@@ -186,4 +186,17 @@ public class SaleDAO {
         }
         return 0.0;
     }
+
+    public List<Map<String, Object>> getMonthlyReportData() {
+        String sql = "SELECT " +
+                     "DATE(s.created_at) as Tanggal, " +
+                     "COUNT(s.sale_id) as Total_Transaksi, " +
+                     "SUM(s.total_amount) as Omset, " +
+                     "SUM(s.profit) as Total_Laba " +
+                     "FROM sales s " +
+                     "WHERE s.is_cancelled = 0 " +
+                     "GROUP BY DATE(s.created_at) " +
+                     "ORDER BY s.created_at DESC";
+        return db.selectAllCustom(sql);
+    }
 }

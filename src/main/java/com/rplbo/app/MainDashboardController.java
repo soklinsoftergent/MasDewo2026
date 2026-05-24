@@ -3,6 +3,7 @@ package com.rplbo.app;
 import com.rplbo.app.dao.*;
 import com.rplbo.app.models.*;
 import com.rplbo.app.services.UserSession;
+import com.rplbo.app.util.CSVExporter;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -200,5 +201,18 @@ public class MainDashboardController {
     private void resetSidebarStyles() {
         List.of(dashboardButton, inventoryButton, salesButton, financeButton, employeeButton)
                 .forEach(b -> b.setStyle("-fx-background-color: transparent; -fx-text-fill: #627181;"));
+    }
+
+    @FXML
+    private void handleExportReport() {
+        List<Map<String, Object>> data = saleDAO.getMonthlyReportData();
+        boolean success = CSVExporter.export(data, "Laporan_Bulanan");
+        if (success) {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION, "Laporan berhasil diunduh ke folder Downloads!");
+            alert.show();
+        } else {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Gagal mengekspor laporan.");
+            alert.show();
+        }
     }
 }
