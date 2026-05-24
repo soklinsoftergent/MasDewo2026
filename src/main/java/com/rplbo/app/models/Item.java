@@ -1,12 +1,11 @@
 package com.rplbo.app.models;
 
 import com.rplbo.app.db.DBConnection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class Item {
+public class Item extends ActiveRecord {
+
     private Integer id;
     private String sku;
     private String name;
@@ -19,8 +18,20 @@ public class Item {
     private double purchasePrice;
     private double sellingPrice;
 
-    /** Constructor for a NEW Item (not yet in DB) */
-    public Item(String name, String brand, String model, int stock, int itemTypeId, Integer supplierId, double pPrice, double sPrice) {
+    // =========================
+    // Constructors
+    // =========================
+
+    public Item(
+            String name,
+            String brand,
+            String model,
+            int stock,
+            int itemTypeId,
+            Integer supplierId,
+            double pPrice,
+            double sPrice
+    ) {
         this.name = name;
         this.brand = brand;
         this.model = model;
@@ -31,89 +42,61 @@ public class Item {
         this.sellingPrice = sPrice;
     }
 
-    /**
-     * Constructor for loading from Database Map
-     * This makes ItemDAO.getAllItems() a simple one-liner loop!
-     */
-    public Item(Map<String, Object> data) {
-        this.id = (Integer) data.get("id");
-        this.sku = (String) data.get("sku");
-        this.name = (String) data.get("name");
-        this.brand = (String) data.get("brand");
-        this.model = (String) data.get("model");
-        this.image = (String) data.get("image");
-        this.stock = ((Number) data.get("stock")).intValue();
-        this.itemTypeId = ((Number) data.get("it_ty_id")).intValue();
-        this.supplierId = ((Number) data.get("supplier_id")).intValue();
-        this.purchasePrice = ((Number) data.get("purchase_price")).doubleValue();
-        this.sellingPrice = ((Number) data.get("selling_price")).doubleValue();
-    }
-
-
-    public Item(Integer id, String sku, String name, String brand, String model, Integer stock, Integer itTyId, Integer supplierId, double purchasePrice, double sellingPrice) {
-        this.id = id;
+    public Item(
+            String sku,
+            String name,
+            String brand,
+            String model,
+            int stock,
+            int itemTypeId,
+            Integer supplierId,
+            double purchasePrice,
+            double sellingPrice
+    ) {
         this.sku = sku;
         this.name = name;
         this.brand = brand;
         this.model = model;
         this.stock = stock;
-        this.itemTypeId = itTyId;
+        this.itemTypeId = itemTypeId;
         this.supplierId = supplierId;
         this.purchasePrice = purchasePrice;
         this.sellingPrice = sellingPrice;
     }
 
-    // --- Active Record Helper ---
-    private void executeUpdate(String field, Object value) {
-        if (this.id != null) {
-            Map<String, Object> updates = new LinkedHashMap<>();
-            updates.put(field, value);
-            DBConnection.getInstance().updateField("items", "id", this.id, updates);
-        }
+    public Item(Map<String, Object> data) {
+        fromMap(data);
     }
 
-    // --- Business Logic Methods (From Python) ---
+    // =========================
+    // ActiveRecord Implementation
+    // =========================
 
-    public boolean isSoldOut() { return this.stock <= 0; }
-
-    public void addItemStock(int amount) {
-        this.stock += amount;
-        executeUpdate("stock", this.stock);
+    @Override
+    protected String tableName() {
+        return "items";
     }
 
-    // --- Setters (Triggers immediate DB update) ---
+    @Override
+    protected String primaryKeyColumn() {
+        return "id";
+    }
 
-    public void setSupplierId(Integer supplierId) { this.supplierId = supplierId; executeUpdate("supplier_id", supplierId); }
-    public void setBrand(String brand) { this.brand = brand; executeUpdate("brand", brand); }
-    public void setModel(String model) { this.model = model; executeUpdate("model", model); }
-    public void setName(String name) { this.name = name; executeUpdate("name", name); }
-    public void setImage(String image) { this.image = image; executeUpdate("image", image); }
-    public void setStock(int stock) { this.stock = stock; executeUpdate("stock", stock); }
-    public void setPurchasePrice(double purchasePrice) { this.purchasePrice = purchasePrice; executeUpdate("purchase_price", purchasePrice); }
-    public void setSellingPrice(double sellingPrice) { this.sellingPrice = sellingPrice; executeUpdate("selling_price", sellingPrice); }
+    @Override
+    protected Integer getId() {
+        return this.id;
+    }
 
-    // --- Getters ---
+    @Override
+    protected void setId(Integer id) {
+        this.id = id;
+    }
 
-    public String getSku() { return this.sku; }
-    public Integer getSupplierId() { return this.supplierId; }
-    public Integer getId() { return id; }
-    public String getName() { return name; }
-    public String getImage() { return image; }
-    public int getStock() { return stock; }
-    public int getItemTypeId() { return itemTypeId; }
-    public double getPurchasePrice() { return purchasePrice; }
-    public double getSellingPrice() { return sellingPrice; }
-
-    // --- Database Operations ---
-
-    /**
-     * Saves a new Item and triggers the 2-step SKU generation logic.
-     * @param typeName Category name (e.g. "Adapter") to build the SKU prefix.
-     */
-    public boolean save(String typeName) {
-        if (this.id != null) return false;
-
+    @Override
+    public Map<String, Object> toMap() {
         Map<String, Object> data = new LinkedHashMap<>();
+
+        data.put("sku", this.sku);
         data.put("name", this.name);
         data.put("brand", this.brand);
         data.put("model", this.model);
@@ -124,53 +107,217 @@ public class Item {
         data.put("purchase_price", this.purchasePrice);
         data.put("selling_price", this.sellingPrice);
 
-        // Satisfy the UNIQUE NOT NULL constraint with a temp value
-        data.put("sku", "TMP-" + System.currentTimeMillis());
-
-        Integer newId = DBConnection.getInstance().insertIntoTableAndGetId("items", data);
-
-        if (newId != null) {
-            this.id = newId;
-            this.sku = generateAutoSku(typeName); // Generate real SKU based on ID
-
-            Map<String, Object> skuUpdate = new LinkedHashMap<>();
-            skuUpdate.put("sku", this.sku);
-            return DBConnection.getInstance().updateField("items", "id", this.id, skuUpdate);
-        }
-        return false;
-    }
-
-    public void refresh() {
-        if (this.id == null) return;
-        Map<String, Object> data = DBConnection.getInstance().fetchRow("items", "id", this.id);
-        if (data != null) {
-            this.sku = (String) data.get("sku");
-            this.name = (String) data.get("name");
-            this.stock = ((Number) data.get("stock")).intValue();
-            this.purchasePrice = ((Number) data.get("purchase_price")).doubleValue();
-            this.sellingPrice = ((Number) data.get("selling_price")).doubleValue();
-        }
-    }
-
-    private String generateAutoSku(String typeName) {
-        String typePart = typeName.replaceAll("[ a-z]", "").toUpperCase();
-        if (typePart.length() < 3) typePart = typeName.substring(0, 3).toUpperCase();
-        String brandPart = (brand != null && brand.length() >= 3) ? brand.substring(0, 3).toUpperCase() : "GEN";
-        String modelPart = (model != null && model.length() >= 3) ? model.substring(0, 3).toUpperCase() : "MDL";
-        return String.format("%s-%s-%s-%03d", typePart, brandPart, modelPart, id);
+        return data;
     }
 
     @Override
-    public String toString() {
-        return String.format("[%s] %s (Stock: %d)", sku, name, stock);
+    public void fromMap(Map<String, Object> data) {
+        this.id = (Integer) data.get("id");
+        this.sku = (String) data.get("sku");
+        this.name = (String) data.get("name");
+        this.brand = (String) data.get("brand");
+        this.model = (String) data.get("model");
+        this.image = (String) data.get("image");
+
+        this.stock = data.get("stock") != null
+                ? ((Number) data.get("stock")).intValue()
+                : 0;
+
+        this.itemTypeId = data.get("it_ty_id") != null
+                ? ((Number) data.get("it_ty_id")).intValue()
+                : 0;
+
+        this.supplierId = data.get("supplier_id") != null
+                ? ((Number) data.get("supplier_id")).intValue()
+                : null;
+
+        this.purchasePrice = data.get("purchase_price") != null
+                ? ((Number) data.get("purchase_price")).doubleValue()
+                : 0;
+
+        this.sellingPrice = data.get("selling_price") != null
+                ? ((Number) data.get("selling_price")).doubleValue()
+                : 0;
     }
 
-//    public static void main(String[] args) {
-//        DBConnection.initialize("localhost", "root", "", "masdewotrue");
-//        Item item = new Item("Kamera", "Nikon", "AX10", 10, 1, 1,10000, 20000);
-//        System.out.println(item);
-//        String sku = item.generateAutoSku("Kamera");
-//        System.out.println(sku);
-//        item.save("Kamera");
-//    }
+    // =========================
+    // Custom Save Logic
+    // =========================
+
+    /**
+     * Item overrides save because it has SKU auto-generation logic.
+     */
+    public boolean save(String typeName) {
+
+        if (this.id != null) return false;
+
+        // Temporary SKU
+        if (this.sku == null) {
+            this.sku = "TMP-" + System.currentTimeMillis();
+        }
+
+        Integer newId = DBConnection.getInstance()
+                .insertIntoTableAndGetId(tableName(), toMap());
+
+        if (newId != null) {
+
+            this.id = newId;
+
+            // Auto-generate only if imported SKU does not exist
+            if (this.sku.startsWith("TMP-")) {
+
+                this.sku = generateAutoSku(typeName);
+
+                Map<String, Object> updates = new LinkedHashMap<>();
+                updates.put("sku", this.sku);
+
+                DBConnection.getInstance().updateField(
+                        tableName(),
+                        primaryKeyColumn(),
+                        this.id,
+                        updates
+                );
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    // =========================
+    // Business Logic
+    // =========================
+
+    public boolean isSoldOut() {
+        return this.stock <= 0;
+    }
+
+    public void addItemStock(int amount) {
+        this.stock += amount;
+        executeUpdate("stock", this.stock);
+    }
+
+    private String generateAutoSku(String typeName) {
+
+        String typePart = typeName
+                .replaceAll("[ a-z]", "")
+                .toUpperCase();
+
+        if (typePart.length() < 3) {
+            typePart = typeName.substring(0, 3).toUpperCase();
+        }
+
+        String brandPart =
+                (brand != null && brand.length() >= 3)
+                        ? brand.substring(0, 3).toUpperCase()
+                        : "GEN";
+
+        String modelPart =
+                (model != null && model.length() >= 3)
+                        ? model.substring(0, 3).toUpperCase()
+                        : "MDL";
+
+        return String.format(
+                "%s-%s-%s-%03d",
+                typePart,
+                brandPart,
+                modelPart,
+                id
+        );
+    }
+
+    // =========================
+    // Setters
+    // =========================
+
+    public void setSupplierId(Integer supplierId) {
+        this.supplierId = supplierId;
+        executeUpdate("supplier_id", supplierId);
+    }
+
+    public void setBrand(String brand) {
+        this.brand = brand;
+        executeUpdate("brand", brand);
+    }
+
+    public void setModel(String model) {
+        this.model = model;
+        executeUpdate("model", model);
+    }
+
+    public void setName(String name) {
+        this.name = name;
+        executeUpdate("name", name);
+    }
+
+    public void setImage(String image) {
+        this.image = image;
+        executeUpdate("image", image);
+    }
+
+    public void setStock(int stock) {
+        this.stock = stock;
+        executeUpdate("stock", stock);
+    }
+
+    public void setPurchasePrice(double purchasePrice) {
+        this.purchasePrice = purchasePrice;
+        executeUpdate("purchase_price", purchasePrice);
+    }
+
+    public void setSellingPrice(double sellingPrice) {
+        this.sellingPrice = sellingPrice;
+        executeUpdate("selling_price", sellingPrice);
+    }
+
+    // =========================
+    // Getters
+    // =========================
+
+    public String getSku() {
+        return sku;
+    }
+
+    public Integer getSupplierId() {
+        return supplierId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getImage() {
+        return image;
+    }
+
+    public int getStock() {
+        return stock;
+    }
+
+    public int getItemTypeId() {
+        return itemTypeId;
+    }
+
+    public double getPurchasePrice() {
+        return purchasePrice;
+    }
+
+    public double getSellingPrice() {
+        return sellingPrice;
+    }
+
+    // =========================
+    // Debug
+    // =========================
+
+    @Override
+    public String toString() {
+        return String.format(
+                "[%s] %s (Stock: %d)",
+                sku,
+                name,
+                stock
+        );
+    }
 }

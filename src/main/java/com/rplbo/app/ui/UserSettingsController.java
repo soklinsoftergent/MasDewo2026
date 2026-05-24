@@ -2,60 +2,69 @@ package com.rplbo.app.ui;
 
 import com.rplbo.app.models.User;
 import com.rplbo.app.services.UserSession;
-import javafx.event.ActionEvent;
+import com.rplbo.app.util.ValidationUtil;
 import javafx.fxml.FXML;
-import javafx.scene.control.Label;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
+import javafx.stage.Stage;
 
 public class UserSettingsController {
-    @FXML
-    public Label avatarLabel;
-    @FXML
-    public Label displayNameLabel;
-    @FXML
-    public Label roleBadge;
-    @FXML
-    public Label displayEmailLabel;
-    @FXML
-    public Label lastLoginLabel;
-    @FXML
-    public TextField usernameField;
-    @FXML
-    public TextField emailField;
-    @FXML
-    public TextField phoneField;
-    @FXML
-    public PasswordField currentPasswordField;
-    @FXML
-    public PasswordField newPasswordField;
-    @FXML
-    public PasswordField confirmPasswordField;
 
-    @FXML
-    public void handleLogout(ActionEvent actionEvent) {
+    @FXML private Label avatarLabel, displayNameLabel, displayEmailLabel, roleBadge;
+    @FXML private TextField usernameField, emailField, phoneField;
+    @FXML private PasswordField currentPasswordField, newPasswordField, confirmPasswordField;
 
-    }
-    @FXML
-    public void handleSaveProfile(ActionEvent actionEvent) {
+    private User targetUser; // User yang sedang ditampilkan/diedit
 
-    }
-    @FXML
-    public void handleUpdatePassword(ActionEvent actionEvent) {
-
-    }
     @FXML
     public void initialize() {
-        User current = UserSession.getInstance().getCurrentUser();
-
-        // Fill the display labels
-        displayNameLabel.setText(current.getUsername());
-        displayEmailLabel.setText(current.getUserEmail());
-        avatarLabel.setText(current.getUsername().substring(0, 2).toUpperCase());
-
-        // Pre-fill the form fields
-        usernameField.setText(current.getUsername());
-        emailField.setText(current.getUserEmail());
-        phoneField.setText(current.getUserPhoneNumber());
+        // Jika dipanggil secara normal (dari sidebar), tampilkan user yang sedang login
+        if (targetUser == null) {
+            setUserData(UserSession.getInstance().getCurrentUser());
+        }
     }
+
+    /**
+     * Metode untuk "menyuntikkan" data user dari controller lain (misal dari EmployeesController)
+     */
+    public void setUserData(User user) {
+        this.targetUser = user;
+
+        // Isi Label
+        displayNameLabel.setText(user.getUsername());
+        displayEmailLabel.setText(user.getUserEmail());
+        avatarLabel.setText(user.getUsername().substring(0, Math.min(2, user.getUsername().length())).toUpperCase());
+        roleBadge.setText(user.isAdmin() ? "ADMIN" : "STAFF");
+
+        // Isi Form
+        usernameField.setText(user.getUsername());
+        emailField.setText(user.getUserEmail());
+        phoneField.setText(user.getUserPhoneNumber());
+    }
+
+    @FXML
+    private void handleSaveProfile() {
+        try {
+            String newEmail = emailField.getText().trim();
+            if (!ValidationUtil.isValidEmail(newEmail)) {
+                throw new IllegalArgumentException("Email tidak valid!");
+            }
+
+            targetUser.setUsername(usernameField.getText());
+            targetUser.setEmail(newEmail);
+            targetUser.setPhoneNumber(phoneField.getText());
+
+            Alert alert = new Alert(Alert.AlertType.INFORMATION, "Profil berhasil diperbarui!");
+            alert.show();
+        } catch (Exception e) {
+            new Alert(Alert.AlertType.ERROR, e.getMessage()).show();
+        }
+    }
+
+    @FXML
+    private void handleLogout() {
+        // Logika logout...
+        System.out.println("Logging out...");
+    }
+
+    @FXML private void handleUpdatePassword() { /* Logika update password */ }
 }

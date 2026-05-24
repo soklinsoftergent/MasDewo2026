@@ -159,7 +159,14 @@ public class DBConnection {
 
     public synchronized void releaseConnection(Connection conn) {
         if (conn != null) {
-            connectionPool.offer(conn);
+            try {
+                if (!conn.getAutoCommit()) {
+                    conn.setAutoCommit(true);
+                }
+                connectionPool.offer(conn);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
     }
 

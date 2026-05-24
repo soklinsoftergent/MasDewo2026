@@ -10,14 +10,20 @@ public class ValidationUtil {
 
     // Regex Password: Minimal 8 karakter, ada angka, huruf besar, huruf kecil, dan simbol
     private static final String PASSWORD_PATTERN =
-            "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!])(?=\\S+$).{8,}$";
+            "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{8,}$";
+
+    private static final Pattern EMAIL_REGEX =
+            Pattern.compile(EMAIL_PATTERN);
+
+    private static final Pattern PASSWORD_REGEX =
+            Pattern.compile(PASSWORD_PATTERN);
 
     /**
      * Cek apakah format email valid.
      */
     public static boolean isValidEmail(String email) {
         if (email == null) return false;
-        return Pattern.compile(EMAIL_PATTERN).matcher(email).matches();
+        return EMAIL_REGEX.matcher(email).matches();
     }
 
     /**
@@ -25,6 +31,6 @@ public class ValidationUtil {
      */
     public static boolean isStrongPassword(String password) {
         if (password == null) return false;
-        return Pattern.compile(PASSWORD_PATTERN).matcher(password).matches();
+        return PASSWORD_REGEX.matcher(password).matches();
     }
 }

@@ -53,4 +53,15 @@ public class UserDAO {
         return newUser.save();
     }
 
+    // Tambahkan ini di UserDAO.java
+    public boolean isUsernameOrEmailExists(String username, String email) {
+        String sql = "SELECT count(*) FROM users WHERE username = ? OR email = ?";
+        List<Map<String, Object>> res = DBConnection.getInstance().selectAllCustom(sql, username, email);
+        if (res != null && !res.isEmpty()) {
+            int count = Integer.parseInt(res.get(0).get("count(*)").toString());
+            return count > 0;
+        }
+        return false;
+    }
+
 }
