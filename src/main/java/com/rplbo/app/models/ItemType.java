@@ -91,18 +91,18 @@ public class ItemType {
         return itemTypeName; // Useful for ComboBox display
     }
 
-    public static void main(String[] args) {
-        DBConnection.initialize("localhost", "root", "", "masdewotrue");
-        new ItemType("Adapter", "").save();
-        new ItemType("L Plate", "").save();
-        new ItemType("Silicone", "").save();
-        new ItemType("Batre", "").save();
-        new ItemType("Strap", "").save();
-        new ItemType("Memory", "").save();
-        new ItemType("Cleaning Kit", "").save();
-        new ItemType("Studio", "").save();
-        new ItemType("Efek Foto", "").save();
-        new ItemType("Acc", "").save();
-        new ItemType("Kotak Musik", "").save();
-    }
+//    public static void main(String[] args) {
+//        DBConnection.initialize("localhost", "root", "", "masdewotrue");
+//        new ItemType("Adapter", "").save();
+//        new ItemType("L Plate", "").save();
+//        new ItemType("Silicone", "").save();
+//        new ItemType("Batre", "").save();
+//        new ItemType("Strap", "").save();
+//        new ItemType("Memory", "").save();
+//        new ItemType("Cleaning Kit", "").save();
+//        new ItemType("Studio", "").save();
+//        new ItemType("Efek Foto", "").save();
+//        new ItemType("Acc", "").save();
+//        new ItemType("Kotak Musik", "").save();
+//    }
 }

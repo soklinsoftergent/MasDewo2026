@@ -1,6 +1,7 @@
 package com.rplbo.app.models;
 
 import com.rplbo.app.db.DBConnection;
+import com.rplbo.app.util.ValidationUtil;
 import org.mindrot.jbcrypt.BCrypt;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -134,4 +135,6 @@ public class User {
                 userPhoneNumber != null ? userPhoneNumber : "N/A",
                 isAdmin ? "Yes" : "No");
     }
+
+
 }

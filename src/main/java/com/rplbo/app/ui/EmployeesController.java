@@ -28,6 +28,12 @@ public class EmployeesController {
 
     @FXML
     public void initialize() {
+        // 🛡️ SECURITY GUARD
+        if (!com.rplbo.app.services.UserSession.getInstance().isAdmin()) {
+            System.err.println("🚫 Security Breach: Non-admin tried to access Employee Page.");
+            // Logic to redirect or clear content
+            return;
+        }
         setupTableColumns();
         loadEmployeeData();
         setupSearchFilter();
@@ -63,19 +69,33 @@ public class EmployeesController {
 
         // Action Column (Edit/PHK Buttons)
         colAction.setCellFactory(column -> new TableCell<>() {
-            private final Button btnPhk = new Button("PHK");
+            private final Button btnToggle = new Button();
+            private final Button btnReset = new Button("Reset"); // New Feature: Password Reset
+
             {
-                btnPhk.setStyle("-fx-background-color: transparent; -fx-border-color: #ff8e8e; -fx-text-fill: #ff8e8e; -fx-border-radius: 5;");
-                btnPhk.setOnAction(e -> {
-                    User user = getTableView().getItems().get(getIndex());
-                    handlePhk(user);
-                });
+                btnReset.setStyle("-fx-background-color: #4d667b; -fx-text-fill: white; -fx-background-radius: 5; -fx-margin: 0 5 0 0;");
+                btnReset.setOnAction(e -> handleResetPassword(getTableView().getItems().get(getIndex())));
             }
 
             @Override
             protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty ? null : new HBox(5, btnPhk));
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    User user = getTableView().getItems().get(getIndex());
+                    // Toggle between PHK and Rekrut
+                    if (user.isActive()) {
+                        btnToggle.setText("PHK");
+                        btnToggle.setStyle("-fx-background-color: transparent; -fx-border-color: #ff8e8e; -fx-text-fill: #ff8e8e;");
+                    } else {
+                        btnToggle.setText("Rekrut");
+                        btnToggle.setStyle("-fx-background-color: transparent; -fx-border-color: #79e07c; -fx-text-fill: #79e07c;");
+                    }
+
+                    btnToggle.setOnAction(e -> handleToggleStatus(user));
+                    setGraphic(new HBox(10, btnToggle, btnReset));
+                }
             }
         });
     }
@@ -136,4 +156,6 @@ public class EmployeesController {
             }
         };
     }
+
+
 }

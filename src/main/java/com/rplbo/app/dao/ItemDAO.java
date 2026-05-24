@@ -2,6 +2,7 @@ package com.rplbo.app.dao;
 
 import com.rplbo.app.db.DBConnection;
 import com.rplbo.app.models.Item;
+import com.rplbo.app.models.User;
 import com.rplbo.app.util.InventoryTrie;
 
 import java.sql.ResultSet;
@@ -101,5 +102,25 @@ public class ItemDAO {
                 "JOIN item_types t ON i.it_ty_id = t.it_ty_id GROUP BY t.name";
         // Logic to run query and populate map...
         return dist;
+    }
+
+    public boolean manualStockAdjustment(int itemId, int newQuantity, String reason) {
+        User admin = com.rplbo.app.services.UserSession.getInstance().getCurrentUser();
+
+        // 1. Get current item to calculate the "Change"
+        Map<String, Object> itemData = DBConnection.getInstance().fetchRow("items", "id", itemId);
+        int oldStock = ((Number) itemData.get("stock")).intValue();
+        int change = newQuantity - oldStock;
+
+        // 2. Update the item
+        Map<String, Object> update = new HashMap<>();
+        update.put("stock", newQuantity);
+        boolean success = DBConnection.getInstance().updateField("items", "id", itemId, update);
+
+        // 3. LOG THE REASON (e.g., "Barang Pecah", "Restok Supplier")
+        if (success) {
+            new StockMovementDAO().logChange(itemId, admin.getUserId(), change, "MANUAL: " + reason);
+        }
+        return success;
     }
 }

@@ -100,6 +100,13 @@ public class MainDashboardController {
         Label rev = (Label) root.lookup("#dashboardRevenueLabel");
         Label trx = (Label) root.lookup("#dashboardTransactionsLabel");
         VBox criticalBox = (VBox) root.lookup("#criticalItemsListBox");
+
+        // --- THE FIX: ADD NULL CHECKS ---
+        if (criticalBox == null) {
+            System.err.println("FXML ERROR: Could not find #criticalItemsListBox in DashboardPage.fxml");
+            return; // Stop here so we don't crash
+        }
+
         BarChart<String, Number> chart = (BarChart) root.lookup("#inventoryStockChart");
         PieChart pie = (PieChart) root.lookup("#platformPieChart");
 

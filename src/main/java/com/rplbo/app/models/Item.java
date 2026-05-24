@@ -165,12 +165,12 @@ public class Item {
         return String.format("[%s] %s (Stock: %d)", sku, name, stock);
     }
 
-    public static void main(String[] args) {
-        DBConnection.initialize("localhost", "root", "", "masdewotrue");
-        Item item = new Item("Kamera", "Nikon", "AX10", 10, 1, 1,10000, 20000);
-        System.out.println(item);
-        String sku = item.generateAutoSku("Kamera");
-        System.out.println(sku);
-        item.save("Kamera");
-    }
+//    public static void main(String[] args) {
+//        DBConnection.initialize("localhost", "root", "", "masdewotrue");
+//        Item item = new Item("Kamera", "Nikon", "AX10", 10, 1, 1,10000, 20000);
+//        System.out.println(item);
+//        String sku = item.generateAutoSku("Kamera");
+//        System.out.println(sku);
+//        item.save("Kamera");
+//    }
 }

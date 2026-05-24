@@ -9,7 +9,8 @@
 <VBox xmlns="http://javafx.com/javafx/21"
       xmlns:fx="http://javafx.com/fxml/1"
       spacing="18.0"
-      style="-fx-background-color: #1f1f1f;">
+      style="-fx-background-color: #1f1f1f;"
+      fx:controller="com.rplbo.app.ui.FinanceController">
     <HBox spacing="18.0">
         <VBox HBox.hgrow="ALWAYS" spacing="8.0" style="-fx-background-color: #4d667b; -fx-background-radius: 10; -fx-padding: 18;">
             <Label text="Saldo Kas" style="-fx-text-fill: #dbe7ef; -fx-font-size: 12px; -fx-font-weight: 700;"/>

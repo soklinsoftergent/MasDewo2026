@@ -21,5 +21,17 @@ public class AttendanceDAO {
         return map.get("clock_out") == null;
     }
 
-    
+    public boolean clockIn(int userId) {
+        Attendance attendance = new Attendance(userId);
+        return attendance.save();
+    }
+
+    public boolean clockOut(int userId) {
+        Attendance activeShift = findActiveShift(userId);
+        if (activeShift != null) {
+            activeShift.doClockOut();
+            return true;
+        }
+        return false;
+    }
 }

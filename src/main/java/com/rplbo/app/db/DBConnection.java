@@ -195,38 +195,22 @@ public class DBConnection {
      * Usage: fetchOne("name", "items", "id", 1)
      */
     public String fetchOneByKeyColumn(String tableColumn, String tableName, String keyColumn, Object keyValue) {
-
         String sql = String.format("SELECT %s FROM %s WHERE %s = ?", tableColumn, tableName, keyColumn);
         Connection conn = null;
-
         try {
             conn = getConnection();
-
-            try (PreparedStatement pstmt = conn.prepareStatement(sql);
-            ResultSet rs = pstmt.executeQuery();) {
-                rs.next();
-                return rs.getString(1);
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setObject(1, keyValue); // PINDAH KE SINI (sebelum execute)
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    if (rs.next()) return rs.getString(1);
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            return null;
         } finally {
             releaseConnection(conn);
         }
-
-//        try {
-//            ensureConnection();
-//            String sql = String.format("SELECT %s FROM %s WHERE %s = ?", tableColumn, tableName, keyColumn);
-//            PreparedStatement pstmt = conn.prepareStatement(sql);
-//            pstmt.setObject(1, keyValue);
-//            ResultSet rs = pstmt.executeQuery();
-//            ResultSetMetaData meta = rs.getMetaData();
-//            rs.next();
-//            return rs.getString(1);
-//        } catch (SQLException e) {
-//            e.printStackTrace();
-//            return null;
-//        }
+        return null;
     }
 
     public boolean deleteByKeyColumn(String tableName, String keyColumn, Object keyValue) {
@@ -455,11 +439,11 @@ public class DBConnection {
         return getMaps(sql);
     }
 
-    public List<Map<String, Object>> selectAllCustom(String customQuery) {
-        return getMaps(customQuery);
+    public List<Map<String, Object>> selectAllCustom(String customQuery, Object... params) {
+        return getMaps(customQuery, params);
     }
 
-    private List<Map<String, Object>> getMaps(String sql) {
+    private List<Map<String, Object>> getMaps(String sql, Object... params) {
         List<Map<String, Object>> result = new ArrayList<>();
 
         Connection conn = null;
@@ -467,23 +451,30 @@ public class DBConnection {
 //            ensureConnection();
             conn = getConnection();
 
-            try (PreparedStatement pstmt = conn.prepareStatement(sql);
-                 ResultSet rs = pstmt.executeQuery()) {
-                ResultSetMetaData meta = rs.getMetaData();
-                int columnCount = meta.getColumnCount();
-                // Buat row tabel
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-                while (rs.next()) {
-
-                    Map<String, Object> row = new LinkedHashMap<>();
-
-                    for (int j = 1; j <= columnCount; j++) {
-                        // Masukkan semua object di row tabel
-                        row.put(meta.getColumnLabel(j), rs.getObject(j));
-                    }
-                    result.add(row);
+                for (int i = 0; i < params.length; i++) {
+                    pstmt.setObject(i + 1, params[i]);
                 }
 
+                try (ResultSet rs = pstmt.executeQuery()) {
+
+                    ResultSetMetaData meta = rs.getMetaData();
+                    int columnCount = meta.getColumnCount();
+
+                    // Buat row tabel
+
+                    while (rs.next()) {
+
+                        Map<String, Object> row = new LinkedHashMap<>();
+
+                        for (int j = 1; j <= columnCount; j++) {
+                            // Masukkan semua object di row tabel
+                            row.put(meta.getColumnLabel(j), rs.getObject(j));
+                        }
+                        result.add(row);
+                    }
+                }
             }
             return result;
             /* ResultSet iku List<Map<String, Object>>
@@ -573,15 +564,15 @@ public class DBConnection {
         return null;
     }
 
-    public static void main(String[] args) {
-        DBConnection.initialize();
-        DBConnection db = DBConnection.getInstance();
-        System.out.println(db.selectAll("users"));
-        db.shutdown();
+//    public static void main(String[] args) {
+//        DBConnection.initialize();
+//        DBConnection db = DBConnection.getInstance();
+//        System.out.println(db.selectAll("users"));
+//        db.shutdown();
 //        System.out.println(db.fetchRow("users", "username", "admin"));
 //        System.out.println(db.fetchOneByKeyColumn("email", "users", "username", "admin"));
 //        System.out.println(db.fetchOneByKeyColumn("user", "nilaimahasiswa", "NIM", "71220907"));
-    }
+//    }
 }
 
 //EXAMPLE USAGE
