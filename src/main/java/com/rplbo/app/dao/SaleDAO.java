@@ -208,4 +208,20 @@ public class SaleDAO {
         List<Map<String, Object>> results = db.selectAllCustom(sql, userId);
         return (results != null && !results.isEmpty()) ? results.get(0) : null;
     }
+
+    public List<Map<String, Object>> getDetailedSalesReport() {
+        String sql = "SELECT s.sale_id AS 'ID Invois', " +
+                "c.name AS 'Pelanggan', " +
+                "u.username AS 'Kasir', " +
+                "s.total_amount AS 'Total Harga', " +
+                "s.profit AS 'Laba', " +
+                "s.created_at AS 'Waktu Transaksi' " +
+                "FROM sales s " +
+                "LEFT JOIN customers c ON s.cust_id = c.cust_id " +
+                "LEFT JOIN users u ON s.user_id = u.user_id " +
+                "WHERE s.is_cancelled = 0 " +
+                "ORDER BY s.created_at DESC";
+
+        return db.selectAllCustom(sql); // Menggunakan selectAllCustom yang mendukung Varargs
+    }
 }

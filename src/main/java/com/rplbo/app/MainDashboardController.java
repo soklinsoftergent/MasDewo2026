@@ -114,17 +114,41 @@ public class MainDashboardController {
         List.of(dashboardButton, inventoryButton, salesButton, financeButton, employeeButton)
                 .forEach(b -> b.setStyle("-fx-background-color: transparent; -fx-text-fill: #627181;"));
     }
+//
+//    @FXML
+//    private void handleExportReport() {
+//        List<Map<String, Object>> data = saleDAO.getMonthlyReportData();
+//        boolean success = CSVExporter.export(data, "Laporan_Bulanan");
+//        if (success) {
+//            Alert alert = new Alert(Alert.AlertType.INFORMATION, "Laporan berhasil diunduh ke folder Downloads!");
+//            alert.show();
+//        } else {
+//            Alert alert = new Alert(Alert.AlertType.ERROR, "Gagal mengekspor laporan.");
+//            alert.show();
+//        }
+//    }
 
     @FXML
     private void handleExportReport() {
-        List<Map<String, Object>> data = saleDAO.getMonthlyReportData();
-        boolean success = CSVExporter.export(data, "Laporan_Bulanan");
-        if (success) {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION, "Laporan berhasil diunduh ke folder Downloads!");
-            alert.show();
-        } else {
-            Alert alert = new Alert(Alert.AlertType.ERROR, "Gagal mengekspor laporan.");
-            alert.show();
+        System.out.println("Menyiapkan data laporan...");
+
+        // 1. Ambil data dari DAO
+        List<Map<String, Object>> reportData = saleDAO.getDetailedSalesReport();
+
+        if (reportData == null || reportData.isEmpty()) {
+            new Alert(Alert.AlertType.WARNING, "Tidak ada data penjualan untuk diekspor.").show();
+            return;
         }
+
+        // 2. Jalankan Ekspor
+        String fileName = "Laporan_Penjualan_" + System.currentTimeMillis();
+        CSVExporter.exportSales(reportData, fileName);
+
+        // 3. Beri feedback ke user
+        Alert success = new Alert(Alert.AlertType.INFORMATION);
+        success.setTitle("Ekspor Berhasil");
+        success.setHeaderText(null);
+        success.setContentText("Laporan '" + fileName + ".csv' telah disimpan di folder Downloads Anda.");
+        success.show();
     }
 }

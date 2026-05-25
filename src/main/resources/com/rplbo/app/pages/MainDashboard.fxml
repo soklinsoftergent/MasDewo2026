@@ -31,6 +31,9 @@
         <HBox alignment="CENTER_LEFT" spacing="14.0" style="-fx-background-color: #4d667b; -fx-padding: 16 22;">
             <Label fx:id="pageTitleLabel" style="-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: 800;" text="Dashboard" />
             <Region HBox.hgrow="ALWAYS" />
+            <Button text="📥 Ekspor Laporan (CSV)"
+                    onAction="#handleExportReport"
+                    style="-fx-background-color: #4d667b; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 20; -fx-background-radius: 8; -fx-cursor: hand;" />
             <Label fx:id="criticalStockBadge" style="-fx-background-color: #f7c2c5; -fx-text-fill: #b33f44; -fx-padding: 10 22; -fx-background-radius: 8; -fx-font-weight: 800;" text="0 stok kritis" />
             <Label fx:id="adminRoleBadge" style="-fx-background-color: #d8c3ff; -fx-text-fill: #6d4ab5; -fx-padding: 10 26; -fx-background-radius: 8; -fx-font-weight: 800;" text="Admin" />
         </HBox>
