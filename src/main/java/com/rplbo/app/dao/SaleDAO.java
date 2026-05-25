@@ -201,4 +201,11 @@ public class SaleDAO {
                      "ORDER BY s.created_at DESC";
         return db.selectAllCustom(sql);
     }
+
+    public Map<String, Object> getClosingReport(int userId) {
+        String sql = "SELECT COUNT(*) as total_orders, SUM(total_amount) as total_cash " +
+                "FROM sales WHERE user_id = ? AND DATE(created_at) = CURRENT_DATE AND is_cancelled = 0";
+        List<Map<String, Object>> results = db.selectAllCustom(sql, userId);
+        return (results != null && !results.isEmpty()) ? results.get(0) : null;
+    }
 }

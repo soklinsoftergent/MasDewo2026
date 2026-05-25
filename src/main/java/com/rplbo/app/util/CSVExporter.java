@@ -37,4 +37,24 @@ public class CSVExporter {
             return false;
         }
     }
+
+    public static void exportSales(List<Map<String, Object>> data, String fileName) {
+        String path = System.getProperty("user.home") + "/Downloads/" + fileName + ".csv";
+
+        try (FileWriter writer = new FileWriter(path)) {
+            writer.append("ID,Pelanggan,Total,Tanggal,Untung\n");
+
+            for (Map<String, Object> row : data) {
+                // Gunakan String.valueOf() karena ia aman terhadap null (mengembalikan string "null" bukannya crash)
+                writer.append(String.valueOf(row.get("sale_id"))).append(",")
+                        .append(String.valueOf(row.getOrDefault("customer_name", "Guest"))).append(",")
+                        .append(String.valueOf(row.get("total_amount"))).append(",")
+                        .append(String.valueOf(row.get("created_at"))).append(",")
+                        .append(String.valueOf(row.get("profit"))).append("\n");
+            }
+            System.out.println("✅ CSV Exported to: " + path);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }

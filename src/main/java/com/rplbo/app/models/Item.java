@@ -82,8 +82,7 @@ public class Item extends ActiveRecord {
         return "id";
     }
 
-    @Override
-    protected Integer getId() {
+    public Integer getId() {
         return this.id;
     }
 
