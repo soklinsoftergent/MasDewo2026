@@ -53,18 +53,15 @@ public class DashboardController {
      * Fills the 4 top cards with aggregate data from the DB.
      */
     private void loadSummaryCards() {
-        // 1. Total Revenue & Profit from SaleDAO
+        // Pastikan DAO sudah menggunakan perbaikan parse di atas
         double revenue = saleDAO.getTotalRevenue();
         double profit = saleDAO.getTotalProfit();
         int transactions = saleDAO.getTransactionCount();
 
-        // 2. Total Expenses (We'll use a direct query here or create an ExpenseDAO)
-        double expenses = getTotalExpenses();
-
+        // Jika masih Rp. 0, mungkin query-nya tidak menemukan data
         dashboardRevenueLabel.setText(idr.format(revenue));
         dashboardTransactionsLabel.setText(String.valueOf(transactions));
         dashboardProfitLabel.setText(idr.format(profit));
-        dashboardExpenseLabel.setText(idr.format(expenses));
     }
 
     /**
