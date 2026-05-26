@@ -40,21 +40,29 @@ public class SaleDAO {
         return items;
     }
 
+    // Di dalam SaleDAO.java
+
     public double getTotalRevenue() {
         Object res = db.fetchOneByKeyColumn("SUM(total_amount)", "sales", "is_cancelled", 0);
-        if (res == null) return 0.0;
+        if (res == null || res.toString().equals("null")) return 0.0;
+
+        // Gunakan toString() lalu parse. Ini anti-error casting.
         return Double.parseDouble(res.toString());
     }
 
     public double getTotalProfit() {
         Object res = db.fetchOneByKeyColumn("SUM(profit)", "sales", "is_cancelled", 0);
-        return res != null ? ((Number) res).doubleValue() : 0.0;
+        if (res == null || res.toString().equals("null")) return 0.0;
+
+        return Double.parseDouble(res.toString());
     }
 
     public int getTransactionCount() {
         Object res = db.fetchOneByKeyColumn("COUNT(*)", "sales", "is_cancelled", 0);
-        if (res == null) return 0;
-        return Integer.parseInt(res.toString());
+        if (res == null || res.toString().equals("null")) return 0;
+
+        // Untuk integer, parse ke Double dulu baru ke int (menghindari error jika ada desimal)
+        return (int) Double.parseDouble(res.toString());
     }
 
     public List<Map<String, Object>> getAllSalesWithDetails() {
@@ -66,13 +74,22 @@ public class SaleDAO {
         return db.selectAllCustom(sql);
     }
 
+    // Tambahkan ke SaleDAO.java
     public List<Map<String, Object>> getAllSalesDetailed() {
-        String sql = "SELECT s.*, c.name as customer_name, u.username as cashier_name " +
+        String sql = "SELECT s.*, c.name AS customer_name, u.username AS cashier_name " +
                 "FROM sales s " +
                 "LEFT JOIN customers c ON s.cust_id = c.cust_id " +
                 "LEFT JOIN users u ON s.user_id = u.user_id " +
                 "ORDER BY s.created_at DESC";
-        return db.selectAllCustom(sql); // Use a custom query method in DBConnection
+        return db.selectAllCustom(sql);
+    }
+
+    public List<Map<String, Object>> getItemsForSaleDetailed(int saleId) {
+        String sql = "SELECT si.*, i.name AS item_name " +
+                "FROM sale_items si " +
+                "JOIN items i ON si.item_id = i.id " +
+                "WHERE si.sale_id = ?";
+        return db.selectAllCustom(sql, saleId);
     }
 
     public static synchronized boolean executeFullSale(Sale sale, List<SaleItem> items) {

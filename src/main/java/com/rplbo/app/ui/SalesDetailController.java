@@ -2,30 +2,33 @@ package com.rplbo.app.ui;
 
 import com.rplbo.app.dao.SaleDAO;
 import com.rplbo.app.models.Sale;
-import com.rplbo.app.models.SaleItem;
+import com.rplbo.app.util.FormatterUtil;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.beans.property.SimpleStringProperty;
 import java.util.List;
+import java.util.Map;
 
 public class SalesDetailController {
     @FXML private Label invoiceLabel, dateLabel, customerLabel, cashierLabel, totalLabel;
-    @FXML private TableView<SaleItem> detailTable;
-    @FXML private TableColumn<SaleItem, String> colItem, colQty, colPrice, colTotal;
+    @FXML private TableView<Map<String, Object>> detailTable;
+    @FXML private TableColumn<Map<String, Object>, String> colItem, colQty, colPrice, colTotal;
 
     public void setSaleData(Sale sale) {
-        invoiceLabel.setText("INV-" + String.format("%04d", sale.getSaleId()));
-        totalLabel.setText("Rp. " + String.format("%,.0f", sale.getTotalAmount()));
+        invoiceLabel.setText(String.format("INV-%04d", sale.getSaleId()));
+        dateLabel.setText(FormatterUtil.formatDate(sale.getCreatedAt()));
+        totalLabel.setText(FormatterUtil.formatCurrency(sale.getTotalAmount()));
 
-        // Load items via DAO
         SaleDAO dao = new SaleDAO();
-        List<SaleItem> items = dao.getItemsForSale(sale.getSaleId());
+        List<Map<String, Object>> items = dao.getItemsForSaleDetailed(sale.getSaleId());
 
-        // Setup columns
-        colItem.setCellValueFactory(d -> new SimpleStringProperty("Item ID: " + d.getValue().getItemId())); // Simplified
-        colQty.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getQuantity())));
-        colPrice.setCellValueFactory(d -> new SimpleStringProperty(String.format("%,.0f", d.getValue().getUnitPrice())));
-        colTotal.setCellValueFactory(d -> new SimpleStringProperty(String.format("%,.0f", d.getValue().getTotalPrice())));
+        // Setup columns menggunakan Map key dari hasil JOIN
+        colItem.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().get("item_name"))));
+        colQty.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().get("quantity"))));
+        colPrice.setCellValueFactory(d -> new SimpleStringProperty(
+                FormatterUtil.formatCurrency(((Number) d.getValue().get("unit_price")).doubleValue())));
+        colTotal.setCellValueFactory(d -> new SimpleStringProperty(
+                FormatterUtil.formatCurrency(((Number) d.getValue().get("total_price")).doubleValue())));
 
         detailTable.getItems().setAll(items);
     }

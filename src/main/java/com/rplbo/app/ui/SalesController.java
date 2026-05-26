@@ -1,103 +1,93 @@
 package com.rplbo.app.ui;
 
-import com.rplbo.app.dao.ItemDAO;
 import com.rplbo.app.dao.SaleDAO;
-import com.rplbo.app.models.*;
-import com.rplbo.app.services.UserSession;
+import com.rplbo.app.models.Sale;
+import com.rplbo.app.util.FormatterUtil;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
-
-import java.util.ArrayList;
+import javafx.scene.layout.VBox;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 import java.util.List;
+import java.util.Map;
 
 public class SalesController {
-    @FXML private TextField searchProductField;
-    @FXML
-    private TableView<CartItem> cartTable;
-    @FXML private Label totalLabel;
+    @FXML private TableView<Map<String, Object>> salesTable;
+    @FXML private TableColumn<Map<String, Object>, String> salesInvoiceColumn, salesCustomerColumn,
+            salesTotalColumn, salesCashierColumn, salesStatusColumn;
 
-    private final ObservableList<CartItem> cartData = FXCollections.observableArrayList();
-    private final ItemDAO itemDAO = new ItemDAO();
+    private final SaleDAO saleDAO = new SaleDAO();
 
     @FXML
-    public void handleSearch() {
-        String query = searchProductField.getText();
-        List<Item> results = itemDAO.searchFast(query);
+    public void initialize() {
+        setupTableColumns();
+        loadSalesHistory();
+        setupRowListener();
+    }
 
-        if (results.isEmpty()) {
-            new Alert(Alert.AlertType.WARNING, "Barang tidak ditemukan!").show();
-            return;
-        }
+    private void setupTableColumns() {
+        salesInvoiceColumn.setCellValueFactory(d -> new SimpleStringProperty(
+                String.format("INV-%04d", (Integer) d.getValue().get("sale_id"))));
 
-        // Tampilkan pilihan jika ada lebih dari 1 hasil
-        ChoiceDialog<Item> dialog = new ChoiceDialog<>(results.get(0), results);
-        dialog.setTitle("Pilih Produk");
-        dialog.setHeaderText("Ditemukan " + results.size() + " produk matching");
-        dialog.setContentText("Pilih produk:");
+        salesCustomerColumn.setCellValueFactory(d -> new SimpleStringProperty(
+                String.valueOf(d.getValue().getOrDefault("customer_name", "Guest"))));
 
-        dialog.showAndWait().ifPresent(selectedItem -> {
-            // Minta jumlah (Quantity)
-            TextInputDialog qtyDialog = new TextInputDialog("1");
-            qtyDialog.setTitle("Jumlah");
-            qtyDialog.setHeaderText("Beli " + selectedItem.getName());
-            qtyDialog.setContentText("Masukkan jumlah unit:");
+        salesTotalColumn.setCellValueFactory(d -> new SimpleStringProperty(
+                FormatterUtil.formatCurrency(((Number) d.getValue().get("total_amount")).doubleValue())));
 
-            qtyDialog.showAndWait().ifPresent(qtyStr -> {
-                try {
-                    int qty = Integer.parseInt(qtyStr);
-                    if (qty > selectedItem.getStock()) {
-                        new Alert(Alert.AlertType.ERROR, "Stok tidak cukup!").show();
-                    } else {
-                        // Tambah ke list internal (ObservableList)
-                        cartData.add(new CartItem(selectedItem, qty));
-                        updateTotalLabel();
-                    }
-                } catch (NumberFormatException e) {
-                    new Alert(Alert.AlertType.ERROR, "Input harus angka!").show();
-                }
-            });
+        salesCashierColumn.setCellValueFactory(d -> new SimpleStringProperty(
+                String.valueOf(d.getValue().get("cashier_name"))));
+
+        salesStatusColumn.setCellValueFactory(d -> {
+            boolean isPaid = (Boolean) d.getValue().get("is_paid");
+            return new SimpleStringProperty(isPaid ? "Selesai" : "Pending");
         });
     }
 
-    // Di dalam method updateTotalLabel() atau initialize()
-    private void updateTotalLabel() {
-        double total = cartData.stream().mapToDouble(CartItem::getSubtotal).sum();
-        // Panggil dari Utility
-        totalLabel.setText(com.rplbo.app.util.FormatterUtil.formatCurrency(total));
+    public void loadSalesHistory() {
+        List<Map<String, Object>> data = saleDAO.getAllSalesDetailed();
+        salesTable.setItems(FXCollections.observableArrayList(data));
     }
-    
+
+    private void setupRowListener() {
+        salesTable.setRowFactory(tv -> {
+            TableRow<Map<String, Object>> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && (!row.isEmpty())) {
+                    Map<String, Object> rowData = row.getItem();
+                    showSaleDetails(rowData);
+                }
+            });
+            return row;
+        });
+    }
+
+    private void showSaleDetails(Map<String, Object> rowData) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/rplbo.app/pages/SalesDetailPage.fxml"));
+            VBox root = loader.load();
+
+            SalesDetailController controller = loader.getController();
+            // Kita bungkus Map kembali ke Model Sale untuk dikirim ke Detail
+            controller.setSaleData(new Sale(rowData));
+
+            Stage stage = new Stage();
+            stage.setTitle("Detail Transaksi - " + rowData.get("sale_id"));
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setScene(new Scene(root));
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     @FXML
-    public void handleCheckout() {
-        if (cartData.isEmpty()) return;
-
-        // 1. Siapkan data Sale
-        User current = UserSession.getInstance().getCurrentUser();
-        double total = cartData.stream().mapToDouble(CartItem::getSubtotal).sum();
-        Sale newSale = new Sale(1, current.getUserId(), 1, total);
-
-        // 2. Siapkan list SaleItem
-        List<SaleItem> saleItems = new ArrayList<>();
-        for (CartItem ci : cartData) {
-            saleItems.add(new SaleItem(0, ci.getItem().getId(), ci.getQuantity(),
-                    ci.getItem().getSellingPrice(), ci.getSubtotal()));
-        }
-
-        // 3. PANGGIL BOSS FIGHT (Atomic Transaction)
-        boolean success = SaleDAO.executeFullSale(newSale, saleItems);
-
-        if (success) {
-            // 4. Update Kas (Financial System)
-            new KasTransaction(current.getUserId(), "INCOME", total, "Penjualan Langsung").save();
-            KasBalance kb = new KasBalance(0); // Ambil dari DB
-            kb.refresh();
-            kb.incrementBalance(total);
-
-            cartData.clear();
-            new Alert(Alert.AlertType.INFORMATION, "✅ Transaksi Berhasil!").show();
-        } else {
-            new Alert(Alert.AlertType.ERROR, "❌ Transaksi Gagal (Stok Tidak Cukup)").show();
-        }
+    private void handleNewTransaction() {
+        // Panggil Dialog POS yang sudah Anda buat sebelumnya
+        System.out.println("Membuka Layar Kasir...");
     }
 }
