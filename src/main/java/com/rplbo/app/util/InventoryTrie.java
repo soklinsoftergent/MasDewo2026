@@ -39,4 +39,9 @@ public class InventoryTrie {
         }
         return current.items; // Return all items matching this prefix
     }
+
+    public void clear() {
+        root.children.clear();
+        root.items.clear();
+    }
 }

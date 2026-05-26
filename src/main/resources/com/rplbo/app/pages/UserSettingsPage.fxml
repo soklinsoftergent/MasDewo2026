@@ -34,7 +34,7 @@
 
             <Region HBox.hgrow="ALWAYS" />
 
-            <Button onAction="#handleLogout" text="Log Out" style="-fx-background-color: transparent; -fx-border-color: #ff8e8e; -fx-border-radius: 8; -fx-text-fill: #ff8e8e; -fx-font-weight: 800; -fx-padding: 10 20; -fx-cursor: hand;" />
+            <Button fx:id="logoutButton" onAction="#handleLogout" text="Log Out" style="-fx-background-color: transparent; -fx-border-color: #ff8e8e; -fx-border-radius: 8; -fx-text-fill: #ff8e8e; -fx-font-weight: 800; -fx-padding: 10 20; -fx-cursor: hand;" />
         </children>
     </HBox>
 

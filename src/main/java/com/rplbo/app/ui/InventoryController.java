@@ -2,12 +2,14 @@ package com.rplbo.app.ui;
 
 import com.rplbo.app.dao.ItemDAO;
 import com.rplbo.app.models.Item;
+import com.rplbo.app.models.ItemType;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import java.text.DecimalFormat;
 import java.util.List;
@@ -43,7 +45,7 @@ public class InventoryController {
 
         // 2. Category Lookup (DAO Lead logic)
         inventoryCategoryColumn.setCellValueFactory(d -> {
-            String catName = itemDAO.getTypeNameById(d.getValue().getItemTypeId());
+            String catName = itemDAO.getTypeNameById(d.getValue().getItTyId());
             return new SimpleStringProperty(catName);
         });
 
@@ -91,9 +93,113 @@ public class InventoryController {
         editStockButton.setOnAction(e -> handleEditStock());
     }
 
+    @FXML
     private void handleAddProduct() {
-        // Logic for opening the Add Dialog
-        System.out.println("Opening Add Product Dialog...");
+        // 1. Setup Dialog
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Tambah Produk Baru");
+        dialog.setHeaderText("Masukkan detail produk inventaris");
+
+        // Styling (Dark Theme)
+        dialog.getDialogPane().setStyle("-fx-background-color: #1f1f1f; -fx-border-color: #4d667b;");
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        // 2. Buat Form Input
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(15);
+        grid.setPadding(new javafx.geometry.Insets(20));
+
+        TextField nameField = createStyledField("Nama Produk (Unique)");
+        TextField brandField = createStyledField("Brand (misal: Sony, Fotga)");
+        TextField modelField = createStyledField("Model/Tipe (misal: A7iii, M42)");
+
+        ComboBox<ItemType> typeCombo = new ComboBox<>();
+        typeCombo.setItems(FXCollections.observableArrayList(itemDAO.getAllTypes()));
+        typeCombo.setPromptText("Pilih Kategori");
+        typeCombo.setMaxWidth(Double.MAX_VALUE);
+        typeCombo.setStyle("-fx-background-color: #3d5062; -fx-text-fill: white;");
+
+        Spinner<Integer> stockSpinner = new Spinner<>(0, 9999, 0);
+        stockSpinner.setEditable(true);
+        stockSpinner.setMaxWidth(Double.MAX_VALUE);
+
+        TextField buyPriceField = createStyledField("Harga Beli (Modal)");
+        TextField sellPriceField = createStyledField("Harga Jual");
+
+        // Tambahkan ke Grid
+        String labelStyle = "-fx-text-fill: #dbe7ef; -fx-font-weight: bold;";
+        grid.add(createLabel("Nama:", labelStyle), 0, 0);
+        grid.add(nameField, 1, 0);
+        grid.add(createLabel("Brand:", labelStyle), 0, 1);
+        grid.add(brandField, 1, 1);
+        grid.add(createLabel("Model:", labelStyle), 0, 2);
+        grid.add(modelField, 1, 2);
+        grid.add(createLabel("Kategori:", labelStyle), 0, 3);
+        grid.add(typeCombo, 1, 3);
+        grid.add(createLabel("Stok Awal:", labelStyle), 0, 4);
+        grid.add(stockSpinner, 1, 4);
+        grid.add(createLabel("Harga Beli:", labelStyle), 0, 5);
+        grid.add(buyPriceField, 1, 5);
+        grid.add(createLabel("Harga Jual:", labelStyle), 0, 6);
+        grid.add(sellPriceField, 1, 6);
+
+        dialog.getDialogPane().setContent(grid);
+
+        // 3. Logika Simpan
+        final Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
+            try {
+                // Validasi
+                if (nameField.getText().isEmpty() || typeCombo.getValue() == null) {
+                    throw new IllegalArgumentException("Nama dan Kategori wajib diisi!");
+                }
+
+                // Ambil data
+                String name = nameField.getText();
+                String brand = brandField.getText();
+                String model = modelField.getText();
+                int stock = stockSpinner.getValue();
+                int typeId = typeCombo.getValue().getItTyId();
+                String typeName = typeCombo.getValue().getItemTypeName();
+                double buy = Double.parseDouble(buyPriceField.getText().replace(",", ""));
+                double sell = Double.parseDouble(sellPriceField.getText().replace(",", ""));
+
+                // BUAT OBJEK (Tanpa SKU karena akan di-generate otomatis)
+                Item newItem = new Item(name, brand, model, stock, typeId, buy, sell);
+
+                // SIMPAN KE DATABASE (Menggunakan logic 2-step SKU kita)
+                if (newItem.save()) {
+                    System.out.println("✅ Produk berhasil disimpan: " + newItem.getSku());
+                    loadData(); // Refresh Tabel utama
+                } else {
+                    throw new Exception("Gagal menyimpan ke database. Cek apakah nama duplikat.");
+                }
+
+            } catch (NumberFormatException e) {
+                showAlert("Input Error", "Harga harus berupa angka!");
+                event.consume(); // Jangan tutup dialog
+            } catch (Exception e) {
+                showAlert("Error", e.getMessage());
+                event.consume();
+            }
+        });
+
+        dialog.showAndWait();
+    }
+
+    // Helpers
+    private TextField createStyledField(String prompt) {
+        TextField tf = new TextField();
+        tf.setPromptText(prompt);
+        tf.setStyle("-fx-background-color: #3d5062; -fx-text-fill: white; -fx-prompt-text-fill: #8a98a4; -fx-padding: 8;");
+        return tf;
+    }
+
+    private Label createLabel(String text, String style) {
+        Label l = new Label(text);
+        l.setStyle(style);
+        return l;
     }
 
     private void handleEditStock() {

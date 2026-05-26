@@ -2,131 +2,143 @@ package com.rplbo.app.dao;
 
 import com.rplbo.app.db.DBConnection;
 import com.rplbo.app.models.Item;
-import com.rplbo.app.models.User;
+import com.rplbo.app.models.ItemType;
 import com.rplbo.app.util.InventoryTrie;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.*;
 
 public class ItemDAO {
-    private InventoryTrie searchTree = new InventoryTrie();
+    private final InventoryTrie searchTree = new InventoryTrie();
+    private final DBConnection db = DBConnection.getInstance();
 
     public void initializeSearchTree() {
-        List<Item> all = getAllItems();
-        for (Item item : all) {
+        searchTree.clear(); // Pastikan tree kosong sebelum diisi ulang
+        for (Item item : getAllItems()) {
             searchTree.insert(item);
         }
-        System.out.println("Search tree initialized");
     }
 
-    /**
-     * Use this to implement a search Bar in the UI
-     * @param query
-     * @return
-     */
     public List<Item> searchFast(String query) {
         return searchTree.search(query);
     }
 
-    /**
-     * Fetch every item in the warehouse.
-     * Useful for the main Inventory Table.
-     */
     public List<Item> getAllItems() {
         List<Item> items = new ArrayList<>();
-        List<Map<String, Object>> data = DBConnection.getInstance().selectAll("items");
-
+        List<Map<String, Object>> data = db.selectAll("items");
         for (Map<String, Object> row : data) {
             items.add(new Item(row));
         }
         return items;
     }
 
-
-
-    public boolean restockItem(int itemId, int quantity, int userId) {
-        // 1. Get current item
-        Map<String, Object> data = DBConnection.getInstance().fetchRow("items", "id", itemId);
-        if (data == null) {return false;}
-
-        Item item = new Item(data);
-
-        // 2. Update stock
-        item.setStock(item.getStock() + quantity);
-
-        // 3. Log the movement (Your Audit Trail feature!)
-        StockMovementDAO logDAO = new StockMovementDAO();
-        logDAO.logChange(itemId, userId, quantity, "MANUAL_RESTOCK");
-
-        return true;
-    }
     /**
-     * Find items that are running low on stock.
-     * Essential for the "stok kritis" badge on your Dashboard.
+     * UPDATE STOK DENGAN OPTIMISTIC LOCKING
+     * Menjamin data tidak tabrakan jika diakses banyak user.
      */
+    public boolean updateStockSecure(int itemId, int newStock, int currentVersion) {
+        String sql = "UPDATE items SET stock = ?, version = version + 1 WHERE id = ? AND version = ?";
+
+        try (Connection conn = db.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, newStock);
+            pstmt.setInt(2, itemId);
+            pstmt.setInt(3, currentVersion);
+
+            int affected = pstmt.executeUpdate();
+            return affected > 0; // Mengembalikan false jika version sudah berubah (diedit orang lain)
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public List<Item> getLowStockItems(int threshold) {
         List<Item> items = new ArrayList<>();
-        // Instead of writing a new SQL query, we can filter our already-loaded list
-        // or write a quick SQL statement:
-        String sql = "SELECT * FROM items WHERE stock <= " + threshold;
-
-        // Using the generic selectAll logic but with a filter:
-        for (Map<String, Object> row : DBConnection.getInstance().selectAll("items")) {
-            int stock = ((Number) row.get("stock")).intValue();
-            if (stock <= threshold) {
-                items.add(new Item(row));
-            }
+        // Gunakan selectAllCustom agar lebih fleksibel
+        String sql = "SELECT * FROM items WHERE stock <= ?";
+        List<Map<String, Object>> rows = db.selectAllCustom(sql, threshold);
+        for (Map<String, Object> row : rows) {
+            items.add(new Item(row));
         }
         return items;
     }
 
-    /**
-     * Update stock level (positive for restock, negative for sale).
-     * Uses your generic updateField method.
-     */
-    public boolean updateStock(int itemId, int currentStock) {
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("stock", currentStock);
-        return DBConnection.getInstance().updateField("items", "id", itemId, updates);
-    }
-
     public String getTypeNameById(int typeId) {
-        Object result = DBConnection.getInstance().fetchOneByKeyColumn("name", "item_types", "it_ty_id", typeId);
-        return (result != null) ? result.toString() : "Unknown";
+        Object name = db.fetchOneByKeyColumn("name", "item_types", "it_ty_id", typeId);
+        String typeName = (String) name;
+        return (name != null) ? typeName : "Unknown";
     }
 
+    // Metode Restock yang sudah diperbarui dengan Audit Trail
+    public boolean restockItem(int itemId, int quantity, int userId) {
+        Map<String, Object> data = db.fetchRow("items", "id", itemId);
+        if (data == null) return false;
+
+        Item item = new Item(data);
+        int newStock = item.getStock() + quantity;
+
+        // Gunakan update secure
+        if (updateStockSecure(item.getId(), newStock, item.getVersion())) {
+            new StockMovementDAO().logChange(itemId, userId, quantity, "RESTOK_MANUAL");
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Mengambil semua kategori (ItemType) dari database.
+     * Digunakan untuk mengisi dropdown/ComboBox di UI.
+     */
+    public List<ItemType> getAllTypes() {
+        List<ItemType> types = new ArrayList<>();
+
+        // 1. Ambil data mentah (List of Maps) dari tabel item_types
+        List<Map<String, Object>> data = db.selectAll("item_types");
+
+        if (data != null) {
+            for (Map<String, Object> row : data) {
+                // 2. Gunakan Constructor Map yang sudah kita refactor di model ItemType
+                types.add(new ItemType(row));
+            }
+        }
+
+        return types;
+    }
+
+    /**
+     * Menghitung jumlah jenis barang per kategori untuk ditampilkan di PieChart.
+     * Query ini menggabungkan tabel items dan item_types.
+     */
     public Map<String, Integer> getCategoryDistribution() {
-        Map<String, Integer> dist = new HashMap<>();
-        String sql = "SELECT t.name, COUNT(i.id) FROM items i " +
-                "JOIN item_types t ON i.it_ty_id = t.it_ty_id GROUP BY t.name";
-        // Logic to run query and populate map
-        List<Map<String, Object>> rows = DBConnection.getInstance().selectAllCustom(sql);
-        for (Map<String, Object> row : rows) {
-            String name = (String) row.get("name");
-            int count = Integer.parseInt(row.get("total").toString());
-            dist.put(name, count);
+        Map<String, Integer> distribution = new HashMap<>();
+
+        // SQL dengan JOIN dan Alias 'total'
+        String sql = "SELECT t.name, COUNT(i.id) AS total " +
+                "FROM items i " +
+                "JOIN item_types t ON i.it_ty_id = t.it_ty_id " +
+                "GROUP BY t.name";
+
+        // Panggil selectAllCustom dari DBConnection
+        List<Map<String, Object>> rows = db.selectAllCustom(sql);
+
+        if (rows != null) {
+            for (Map<String, Object> row : rows) {
+                String categoryName = (String) row.get("name");
+
+                // Ambil hasil COUNT (biasanya bertipe Long di JDBC)
+                Object totalObj = row.get("total");
+                int count = (totalObj != null) ? ((Number) totalObj).intValue() : 0;
+
+                distribution.put(categoryName, count);
+            }
         }
-        return dist;
-    }
 
-    public boolean manualStockAdjustment(int itemId, int newQuantity, String reason) {
-        User admin = com.rplbo.app.services.UserSession.getInstance().getCurrentUser();
-
-        // 1. Get current item to calculate the "Change"
-        Map<String, Object> itemData = DBConnection.getInstance().fetchRow("items", "id", itemId);
-        int oldStock = ((Number) itemData.get("stock")).intValue();
-        int change = newQuantity - oldStock;
-
-        // 2. Update the item
-        Map<String, Object> update = new HashMap<>();
-        update.put("stock", newQuantity);
-        boolean success = DBConnection.getInstance().updateField("items", "id", itemId, update);
-
-        // 3. LOG THE REASON (e.g., "Barang Pecah", "Restok Supplier")
-        if (success) {
-            new StockMovementDAO().logChange(itemId, admin.getUserId(), change, "MANUAL: " + reason);
+        // Jika database kosong, berikan data dummy agar chart tidak error (Optional)
+        if (distribution.isEmpty()) {
+            distribution.put("Belum ada data", 1);
         }
-        return success;
+
+        return distribution;
     }
 }

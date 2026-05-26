@@ -42,6 +42,13 @@ public class MainApplication extends Application {
 //
 //        stage.setScene(scene);
 //        stage.show();
+
+    }
+
+    @Override
+    public void stop() {
+        // Pastikan koneksi pool ditutup saat aplikasi benar-benar mati
+        com.rplbo.app.db.DBConnection.getInstance().shutdown();
     }
 
     public static void main(String[] args) {
