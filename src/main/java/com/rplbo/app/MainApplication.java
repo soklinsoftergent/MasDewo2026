@@ -42,7 +42,6 @@ public class MainApplication extends Application {
 //
 //        stage.setScene(scene);
 //        stage.show();
-
     }
 
     @Override

@@ -3,7 +3,9 @@ package com.rplbo.app.ui;
 import com.rplbo.app.dao.SaleDAO;
 import com.rplbo.app.models.Sale;
 import com.rplbo.app.util.FormatterUtil;
+import com.rplbo.app.util.ReceiptGenerator;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import java.util.List;
@@ -13,10 +15,12 @@ public class SalesDetailController {
     @FXML private Label invoiceLabel, dateLabel, customerLabel, cashierLabel, platformLabel, totalLabel;
     @FXML private TableView<Map<String, Object>> detailTable;
     @FXML private TableColumn<Map<String, Object>, String> colItem, colQty, colPrice, colTotal;
-
+    private Sale currentSale;
     private final SaleDAO saleDAO = new SaleDAO();
 
     public void setSaleData(Sale sale) {
+
+        this.currentSale = sale;
         // 1. Set info dasar dari model
         invoiceLabel.setText(String.format("INV-%04d", sale.getSaleId()));
         dateLabel.setText(FormatterUtil.formatDate(sale.getCreatedAt()));
@@ -41,5 +45,19 @@ public class SalesDetailController {
                 FormatterUtil.formatCurrency(((Number) d.getValue().get("total_price")).doubleValue())));
 
         detailTable.getItems().setAll(items);
+    }
+
+    @FXML
+    private void handlePrintReceipt() {
+        if (currentSale != null) {
+            // Ambil nama dari label UI atau dari detailInfo
+            String cust = customerLabel.getText();
+            String cash = cashierLabel.getText();
+
+            ReceiptGenerator.generate(currentSale, cust, cash);
+
+            Alert alert = new Alert(Alert.AlertType.INFORMATION, "Struk telah dikirim ke folder Downloads.");
+            alert.show();
+        }
     }
 }

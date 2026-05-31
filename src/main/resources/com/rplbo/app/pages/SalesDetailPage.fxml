@@ -16,6 +16,9 @@
                     </children>
                 </VBox>
                 <Label fx:id="statusBadge" text="SELESAI" style="-fx-background-color: #dff8cd; -fx-text-fill: #4e8f4c; -fx-padding: 8 20; -fx-background-radius: 8; -fx-font-weight: 800;" />
+                <Button text="🖨️ Cetak Struk"
+                        onAction="#handlePrintReceipt"
+                        style="-fx-background-color: #79e07c; -fx-text-fill: #1f2937; -fx-font-weight: 800; -fx-padding: 10 20; -fx-background-radius: 8;" />
             </children>
         </HBox>
 
