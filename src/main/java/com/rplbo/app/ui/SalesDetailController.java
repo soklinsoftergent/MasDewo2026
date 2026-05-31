@@ -10,19 +10,29 @@ import java.util.List;
 import java.util.Map;
 
 public class SalesDetailController {
-    @FXML private Label invoiceLabel, dateLabel, customerLabel, cashierLabel, totalLabel;
+    @FXML private Label invoiceLabel, dateLabel, customerLabel, cashierLabel, platformLabel, totalLabel;
     @FXML private TableView<Map<String, Object>> detailTable;
     @FXML private TableColumn<Map<String, Object>, String> colItem, colQty, colPrice, colTotal;
 
+    private final SaleDAO saleDAO = new SaleDAO();
+
     public void setSaleData(Sale sale) {
+        // 1. Set info dasar dari model
         invoiceLabel.setText(String.format("INV-%04d", sale.getSaleId()));
         dateLabel.setText(FormatterUtil.formatDate(sale.getCreatedAt()));
         totalLabel.setText(FormatterUtil.formatCurrency(sale.getTotalAmount()));
 
-        SaleDAO dao = new SaleDAO();
-        List<Map<String, Object>> items = dao.getItemsForSaleDetailed(sale.getSaleId());
+        // 2. Panggil DAO untuk mendapatkan info Nama Pelanggan & Kasir (JOIN)
+        Map<String, Object> details = saleDAO.getSaleWithDetails(sale.getSaleId());
+        if (details != null) {
+            customerLabel.setText(String.valueOf(details.getOrDefault("customer_name", "Guest")));
+            cashierLabel.setText(String.valueOf(details.get("cashier_name")));
+            platformLabel.setText(String.valueOf(details.getOrDefault("platform_name", "Direct Store")));
+        }
 
-        // Setup columns menggunakan Map key dari hasil JOIN
+        // 3. Muat item-item di dalam tabel menggunakan JOIN yang sudah ada di SaleDAO
+        List<Map<String, Object>> items = saleDAO.getItemsForSaleDetailed(sale.getSaleId());
+
         colItem.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().get("item_name"))));
         colQty.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().get("quantity"))));
         colPrice.setCellValueFactory(d -> new SimpleStringProperty(

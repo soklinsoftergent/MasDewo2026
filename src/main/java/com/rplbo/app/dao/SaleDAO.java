@@ -74,22 +74,25 @@ public class SaleDAO {
         return db.selectAllCustom(sql);
     }
 
-    // Tambahkan ke SaleDAO.java
     public List<Map<String, Object>> getAllSalesDetailed() {
-        String sql = "SELECT s.*, c.name AS customer_name, u.username AS cashier_name " +
+        // Tambahkan s.* agar semua field model Sale terpenuhi
+        String sql = "SELECT s.*, c.name AS customer_name, u.username AS cashier_name, e.ecom_name AS platform_name, " +
+                "(SELECT COUNT(*) FROM sale_items WHERE sale_id = s.sale_id) AS item_count " +
                 "FROM sales s " +
                 "LEFT JOIN customers c ON s.cust_id = c.cust_id " +
                 "LEFT JOIN users u ON s.user_id = u.user_id " +
+                "LEFT JOIN ecommerces e ON s.ecom_id = e.ecom_id " +
                 "ORDER BY s.created_at DESC";
         return db.selectAllCustom(sql);
     }
 
+    // Tambahkan/Update di SaleDAO.java
     public List<Map<String, Object>> getItemsForSaleDetailed(int saleId) {
         String sql = "SELECT si.*, i.name AS item_name " +
                 "FROM sale_items si " +
                 "JOIN items i ON si.item_id = i.id " +
                 "WHERE si.sale_id = ?";
-        return db.selectAllCustom(sql, saleId);
+        return DBConnection.getInstance().selectAllCustom(sql, saleId);
     }
 
     public static synchronized boolean executeFullSale(Sale sale, List<SaleItem> items) {
@@ -240,5 +243,20 @@ public class SaleDAO {
                 "ORDER BY s.created_at DESC";
 
         return db.selectAllCustom(sql); // Menggunakan selectAllCustom yang mendukung Varargs
+    }
+
+    /**
+     * Mengambil informasi detail satu penjualan beserta nama relasinya.
+     */
+    public Map<String, Object> getSaleWithDetails(int saleId) {
+        String sql = "SELECT s.*, c.name AS customer_name, u.username AS cashier_name, e.ecom_name AS platform_name " +
+                "FROM sales s " +
+                "LEFT JOIN customers c ON s.cust_id = c.cust_id " +
+                "LEFT JOIN users u ON s.user_id = u.user_id " +
+                "LEFT JOIN ecommerces e ON s.ecom_id = e.ecom_id " +
+                "WHERE s.sale_id = ?";
+
+        List<Map<String, Object>> result = db.selectAllCustom(sql, saleId);
+        return (result != null && !result.isEmpty()) ? result.get(0) : null;
     }
 }

@@ -4,9 +4,11 @@ import com.rplbo.app.dao.*;
 import com.rplbo.app.models.*;
 import com.rplbo.app.services.UserSession;
 import com.rplbo.app.util.CSVExporter;
+import com.rplbo.app.util.FormatterUtil;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -22,12 +24,15 @@ public class MainDashboardController {
     @FXML private StackPane contentArea;
     @FXML private Label pageTitleLabel, criticalStockBadge, adminRoleBadge;
     @FXML private Button dashboardButton, inventoryButton, salesButton, financeButton, employeeButton;
+    @FXML private Button btnAttendance;
+    @FXML private Label shiftTimerLabel;
 
     // DAOs
     private final ItemDAO itemDAO = new ItemDAO();
     private final SaleDAO saleDAO = new SaleDAO();
     private final UserDAO userDAO = new UserDAO();
     private final FinanceDAO financeDAO = new FinanceDAO();
+    private final AttendanceDAO attendanceDAO = new AttendanceDAO();
 
     // Caching UI Nodes for speed
     private final Map<String, Node> viewCache = new HashMap<>();
@@ -50,6 +55,7 @@ public class MainDashboardController {
         });
 
         showDashboard(); // Default startup view
+        refreshAttendanceStatus();
     }
 
     private void setupAccessControl() {
@@ -75,10 +81,23 @@ public class MainDashboardController {
         renderView(node, "Inventory", inventoryButton);
     }
 
-    @FXML public void showSales() {
+    @FXML
+    public void showSales() {
+        // Pastikan folder 'pages' memang ada di dalam resources/com/rplbo/app/
         Node node = loadView("/com/rplbo/app/pages/SalesPage.fxml");
+
+        // Pastikan pencarian ID dilakukan SETELAH node dipastikan tidak null
+        if (node instanceof VBox) {
+            TableView<Map<String, Object>> table = (TableView<Map<String, Object>>) node.lookup("#salesTable");
+            if (table != null) {
+                table.setItems(FXCollections.observableArrayList(saleDAO.getAllSalesDetailed()));
+            }
+        }
+
         renderView(node, "Penjualan", salesButton);
     }
+
+
 
     @FXML public void showFinance() {
         Node node = loadView("/com/rplbo/app/pages/FinancePage.fxml");
@@ -95,12 +114,28 @@ public class MainDashboardController {
 
     private Node loadView(String path) {
         if (viewCache.containsKey(path)) return viewCache.get(path);
+
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource(path));
+            // 1. Ambil URL Resource
+            java.net.URL resource = getClass().getResource(path);
+
+            // 2. Cek apakah null?
+            if (resource == null) {
+                System.err.println("❌ ERROR: File FXML tidak ditemukan di path: " + path);
+                return new Label("File tidak ditemukan: " + path);
+            }
+
+            // 3. Muat FXML
+            FXMLLoader loader = new FXMLLoader(resource);
             Node node = loader.load();
+
             viewCache.put(path, node);
             return node;
-        } catch (IOException e) { throw new RuntimeException("FXML error: " + path, e); }
+        } catch (IOException e) {
+            System.err.println("❌ ERROR: Gagal memuat file FXML!");
+            e.printStackTrace();
+            return new Label("Error loading " + path);
+        }
     }
 
     private void renderView(Node node, String title, Button activeBtn) {
@@ -130,25 +165,82 @@ public class MainDashboardController {
 
     @FXML
     private void handleExportReport() {
-        System.out.println("Menyiapkan data laporan...");
-
-        // 1. Ambil data dari DAO
+        // 1. Get the data from your DAO
+        // Ensure this method returns columns with the labels you want in Excel
         List<Map<String, Object>> reportData = saleDAO.getDetailedSalesReport();
 
-        if (reportData == null || reportData.isEmpty()) {
-            new Alert(Alert.AlertType.WARNING, "Tidak ada data penjualan untuk diekspor.").show();
-            return;
+        if (reportData != null && !reportData.isEmpty()) {
+            // 2. Generate a meaningful filename
+            String timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmm"));
+            String fileName = "Laporan_Penjualan_" + timestamp;
+
+            // 3. CALL THE EXPORTER
+            CSVExporter.exportData(reportData, fileName);
+
+            // 4. Show success popup
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Ekspor Berhasil");
+            alert.setHeaderText(null);
+            alert.setContentText("Laporan berhasil disimpan di folder Downloads:\n" + fileName + ".csv");
+            alert.show();
+        } else {
+            new Alert(Alert.AlertType.WARNING, "Tidak ada data untuk diekspor!").show();
         }
+    }
 
-        // 2. Jalankan Ekspor
-        String fileName = "Laporan_Penjualan_" + System.currentTimeMillis();
-        CSVExporter.exportSales(reportData, fileName);
+    private void refreshAttendanceStatus() {
+        User current = UserSession.getInstance().getCurrentUser();
 
-        // 3. Beri feedback ke user
-        Alert success = new Alert(Alert.AlertType.INFORMATION);
-        success.setTitle("Ekspor Berhasil");
-        success.setHeaderText(null);
-        success.setContentText("Laporan '" + fileName + ".csv' telah disimpan di folder Downloads Anda.");
-        success.show();
+        // Safety check jika user session kosong
+        if (current == null) return;
+
+        Attendance activeShift = attendanceDAO.findActiveShift(current.getUserId());
+
+        if (activeShift != null) {
+            btnAttendance.setText("PULANG / SELESAI");
+            btnAttendance.setStyle("-fx-background-color: #ff8e8e; -fx-text-fill: white;");
+            shiftTimerLabel.setText("Masuk: " + com.rplbo.app.util.FormatterUtil.formatDate(activeShift.getClockIn()));
+        } else {
+            btnAttendance.setText("MASUK KERJA");
+            btnAttendance.setStyle("-fx-background-color: #79e07c; -fx-text-fill: #1f2937;");
+            shiftTimerLabel.setText("Belum absen masuk");
+        }
+    }
+
+    @FXML
+    private void handleAttendanceAction() {
+        User current = UserSession.getInstance().getCurrentUser();
+        Attendance activeShift = attendanceDAO.findActiveShift(current.getUserId());
+
+        if (activeShift == null) {
+            // PROSES CLOCK-IN
+            if (attendanceDAO.clockIn(current.getUserId())) {
+                new Alert(Alert.AlertType.INFORMATION, "Selamat bekerja, " + current.getUsername() + "!").show();
+            }
+        } else {
+            // PROSES CLOCK-OUT (Closing Shift Report)
+            handleClosingShift(activeShift);
+        }
+        refreshAttendanceStatus();
+    }
+
+    private void handleClosingShift(Attendance shift) {
+        User current = UserSession.getInstance().getCurrentUser();
+
+        // 1. Hitung total penjualan selama shift ini (Requirement: Closing Shift Report)
+        double totalSales = saleDAO.getTotalSalesInShift(current.getUserId(), shift.getClockIn(), java.time.LocalDateTime.now());
+
+        // 2. Tampilkan laporan singkat ke karyawan
+        String reportMsg = String.format(
+                "Shift Berakhir.\n\nTotal Penjualan Anda: %s\nSilakan setorkan uang ke kasir Admin.",
+                FormatterUtil.formatCurrency(totalSales)
+        );
+
+        Alert report = new Alert(Alert.AlertType.INFORMATION, reportMsg, ButtonType.OK);
+        report.setHeaderText("Laporan Penutupan Shift");
+        report.showAndWait();
+
+        // 3. Simpan waktu keluar ke DB
+        shift.doClockOut();
     }
 }

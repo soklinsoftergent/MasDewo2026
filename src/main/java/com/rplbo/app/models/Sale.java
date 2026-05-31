@@ -63,25 +63,45 @@ public class Sale extends ActiveRecord {
     @Override
     public void fromMap(Map<String, Object> data) {
         this.saleId = (Integer) data.get("sale_id");
-        this.customerId = ((Number) data.get("cust_id")).intValue();
-        this.userId = ((Number) data.get("user_id")).intValue();
+
+        // Gunakan helper method untuk menghindari NullPointerException
+        this.customerId = safeInt(data.get("cust_id"));
+        this.userId = safeInt(data.get("user_id"));
 
         Object ecom = data.get("ecom_id");
         this.ecommerceId = (ecom != null) ? ((Number) ecom).intValue() : 0;
 
-        this.totalAmount = ((Number) data.get("total_amount")).doubleValue();
-        this.profit = ((Number) data.get("profit")).doubleValue();
-        this.logisticsFee = ((Number) data.get("logistics_fee")).doubleValue();
+        this.totalAmount = safeDouble(data.get("total_amount"));
+        this.profit = safeDouble(data.get("profit"));
+        this.logisticsFee = safeDouble(data.get("logistics_fee"));
 
-        // Handle Boolean/TINYINT dari DB
-        this.isPaid = (data.get("is_paid") instanceof Boolean) ?
-                (Boolean) data.get("is_paid") : ((Number) data.get("is_paid")).intValue() == 1;
-        this.isCancelled = (data.get("is_cancelled") instanceof Boolean) ?
-                (Boolean) data.get("is_cancelled") : ((Number) data.get("is_cancelled")).intValue() == 1;
+        // Handle Boolean safely
+        this.isPaid = safeBool(data.get("is_paid"));
+        this.isCancelled = safeBool(data.get("is_cancelled"));
 
         this.paymentMethod = (String) data.get("payment_method");
-        this.createdAt = (data.get("created_at") instanceof LocalDateTime) ?
-                (LocalDateTime) data.get("created_at") : LocalDateTime.now();
+
+        Object createdAtObj = data.get("created_at");
+        this.createdAt = (createdAtObj instanceof LocalDateTime) ?
+                (LocalDateTime) createdAtObj : LocalDateTime.now();
+    }
+
+// --- Tambahkan Helper Methods di bawah agar kode bersih ---
+
+    private int safeInt(Object obj) {
+        if (obj == null) return 0;
+        return ((Number) obj).intValue();
+    }
+
+    private double safeDouble(Object obj) {
+        if (obj == null) return 0.0;
+        return ((Number) obj).doubleValue();
+    }
+
+    private boolean safeBool(Object obj) {
+        if (obj == null) return false;
+        if (obj instanceof Boolean) return (Boolean) obj;
+        return ((Number) obj).intValue() == 1;
     }
 
     // --- Setters (Otomatis update ke Database) ---

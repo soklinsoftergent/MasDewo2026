@@ -10,7 +10,8 @@
 <VBox xmlns="http://javafx.com/javafx/21"
       xmlns:fx="http://javafx.com/fxml/1"
       spacing="18.0"
-      style="-fx-background-color: #1f1f1f;">
+      style="-fx-background-color: #1f1f1f;"
+      fx:controller="com.rplbo.app.ui.SalesController">
     <HBox spacing="12.0" alignment="CENTER_LEFT">
         <TextField fx:id="salesSearchField" promptText="Cari transaksi..." HBox.hgrow="ALWAYS"
                    style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: #efefef; -fx-prompt-text-fill: #6f6f6f; -fx-padding: 10 12;"/>
