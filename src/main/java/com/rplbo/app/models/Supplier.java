@@ -60,4 +60,9 @@ public class Supplier extends ActiveRecord {
         this.address = (String) map.get("address");
         this.createdAt = (LocalDateTime) map.get("created_at");
     }
+
+    @Override
+    public String toString() {
+        return this.name; // This is what shows up in the ComboBox
+    }
 }
