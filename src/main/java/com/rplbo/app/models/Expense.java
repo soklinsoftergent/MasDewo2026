@@ -1,13 +1,11 @@
 package com.rplbo.app.models;
 
-import com.rplbo.app.db.DBConnection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class Expense {
+public class Expense extends ActiveRecord {
+
     private Integer expenseId;
     private int userId;
     private double total;
@@ -15,7 +13,7 @@ public class Expense {
     private LocalDateTime createdAt;
 
     /**
-     * Constructor for creating a NEW Expense
+     * Constructor for NEW expense
      */
     public Expense(int userId, double total, String description) {
         this.userId = userId;
@@ -25,39 +23,103 @@ public class Expense {
     }
 
     /**
-     * Constructor for loading from Database Map
-     * Matches the output of db.selectAll() or db.fetchRow()
+     * Constructor from database row
      */
     public Expense(Map<String, Object> data) {
+        fromMap(data);
+    }
+
+    // =====================================================
+    // ActiveRecord Implementation
+    // =====================================================
+
+    @Override
+    protected String tableName() {
+        return "expenses";
+    }
+
+    @Override
+    protected String primaryKeyColumn() {
+        return "expense_id";
+    }
+
+    @Override
+    protected Integer getId() {
+        return expenseId;
+    }
+
+    @Override
+    protected void setId(Integer id) {
+        this.expenseId = id;
+    }
+
+    @Override
+    public Map<String, Object> toMap() {
+        Map<String, Object> data = new LinkedHashMap<>();
+
+        data.put("user_id", userId);
+        data.put("total", total);
+        data.put("description", description);
+        data.put("created_at", createdAt);
+
+        return data;
+    }
+
+    @Override
+    public void fromMap(Map<String, Object> data) {
+
         this.expenseId = (Integer) data.get("expense_id");
-        this.userId = (Integer) data.get("user_id");
-        // Safe casting for numeric types
-        this.total = ((Number) data.get("total")).doubleValue();
+
+        Object userObj = data.get("user_id");
+        this.userId = userObj == null
+                ? 0
+                : ((Number) userObj).intValue();
+
+        Object totalObj = data.get("total");
+        this.total = totalObj == null
+                ? 0.0
+                : ((Number) totalObj).doubleValue();
+
         this.description = (String) data.get("description");
 
-        // Handle date casting
-        Object date = data.get("created_at");
-        this.createdAt = (date instanceof LocalDateTime) ? (LocalDateTime) date : LocalDateTime.now();
+        Object createdObj = data.get("created_at");
+        this.createdAt = createdObj instanceof LocalDateTime
+                ? (LocalDateTime) createdObj
+                : LocalDateTime.now();
     }
 
-    // --- Active Record Helper ---
-    private void executeUpdate(String field, Object value) {
-        if (this.expenseId != null) {
-            Map<String, Object> updates = new LinkedHashMap<>();
-            updates.put(field, value);
-            DBConnection.getInstance().updateField("expenses", "expense_id", this.expenseId, updates);
-        }
+    // =====================================================
+    // Getters
+    // =====================================================
+
+    public Integer getExpenseId() {
+        return expenseId;
     }
 
-    // --- Getters ---
+    public int getUserId() {
+        return userId;
+    }
 
-    public Integer getExpenseId() { return expenseId; }
-    public int getUserId() { return userId; }
-    public double getTotal() { return total; }
-    public String getDescription() { return description; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
+    public double getTotal() {
+        return total;
+    }
 
-    // --- Setters (Updates DB immediately) ---
+    public String getDescription() {
+        return description;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    // =====================================================
+    // Setters (Auto DB Update)
+    // =====================================================
+
+    public void setUserId(int userId) {
+        this.userId = userId;
+        executeUpdate("user_id", userId);
+    }
 
     public void setTotal(double total) {
         this.total = total;
@@ -74,54 +136,13 @@ public class Expense {
         executeUpdate("created_at", createdAt);
     }
 
-    // --- Persistence & Logic ---
-
-    public boolean save() {
-        if (this.expenseId != null) return false;
-
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("user_id", this.userId);
-        data.put("total", this.total);
-        data.put("description", this.description);
-        data.put("created_at", this.createdAt);
-
-        Integer newId = DBConnection.getInstance().insertIntoTableAndGetId("expenses", data);
-        if (newId != null) {
-            this.expenseId = newId;
-            return true;
-        }
-        return false;
-    }
-
-    public void refresh() {
-        if (this.expenseId == null) return;
-
-        // Use the generic fetchRow helper from DBConnection
-        Map<String, Object> data = DBConnection.getInstance().fetchRow("expenses", "expense_id", this.expenseId);
-
-        if (data != null) {
-            this.userId = (Integer) data.get("user_id");
-            this.total = ((Number) data.get("total")).doubleValue();
-            this.description = (String) data.get("description");
-            this.createdAt = (LocalDateTime) data.get("created_at");
-        }
-    }
-
-    /**
-     * Replicates your to_dict() method
-     */
-    public Map<String, Object> toMap() {
-        Map<String, Object> map = new LinkedHashMap<>();
-        map.put("id", expenseId);
-        map.put("user_id", userId);
-        map.put("total", total);
-        map.put("description", description);
-        map.put("created_at", createdAt);
-        return map;
-    }
-    
     @Override
     public String toString() {
-        return String.format("Expense[ID=%d, User=%d, Total=%.2f]", expenseId, userId, total);
+        return String.format(
+                "Expense[ID=%d, User=%d, Total=%.2f]",
+                expenseId,
+                userId,
+                total
+        );
     }
 }

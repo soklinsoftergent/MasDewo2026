@@ -1,45 +1,81 @@
 package com.rplbo.app.models;
 
-import com.rplbo.app.db.DBConnection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class ItemType {
-    private Integer itTyId; // Primary Key
+public class ItemType extends ActiveRecord {
+
+    private Integer itTyId;
     private String itemTypeName;
     private String description;
 
-    /**
-     * Constructor for creating a NEW ItemType
-     */
     public ItemType(String itemTypeName, String description) {
         this.itemTypeName = itemTypeName;
         this.description = description;
     }
 
-    /**
-     * Constructor for loading from Database Map
-     * Matches the output of db.selectAll() or db.fetchRow()
-     */
     public ItemType(Map<String, Object> data) {
+        fromMap(data);
+    }
+
+    // ==========================================
+    // ActiveRecord Implementation
+    // ==========================================
+
+    @Override
+    protected String tableName() {
+        return "item_types";
+    }
+
+    @Override
+    protected String primaryKeyColumn() {
+        return "it_ty_id";
+    }
+
+    @Override
+    protected Integer getId() {
+        return itTyId;
+    }
+
+    @Override
+    protected void setId(Integer id) {
+        this.itTyId = id;
+    }
+
+    @Override
+    public Map<String, Object> toMap() {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("name", itemTypeName);
+        data.put("description", description);
+        return data;
+    }
+
+    @Override
+    public void fromMap(Map<String, Object> data) {
         this.itTyId = (Integer) data.get("it_ty_id");
         this.itemTypeName = (String) data.get("name");
         this.description = (String) data.get("description");
     }
 
+    // ==========================================
+    // Getters
+    // ==========================================
 
-    // --- Active Record Helper ---
-    private void executeUpdate(String field, Object value) {
-        if (this.itTyId != null) {
-            Map<String, Object> updates = new LinkedHashMap<>();
-            updates.put(field, value);
-            DBConnection.getInstance().updateField("item_types", "it_ty_id", this.itTyId, updates);
-        }
+    public Integer getItTyId() {
+        return itTyId;
     }
 
-    // --- Setters (Triggers DB Update) ---
+    public String getItemTypeName() {
+        return itemTypeName;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    // ==========================================
+    // Setters
+    // ==========================================
 
     public void setItemTypeName(String name) {
         this.itemTypeName = name;
@@ -51,58 +87,8 @@ public class ItemType {
         executeUpdate("description", description);
     }
 
-    // --- Getters ---
-
-    public Integer getItTyId() { return itTyId; }
-    public String getItemTypeName() { return itemTypeName; }
-    public String getDescription() { return description; }
-
-    // --- Active Record Logic ---
-
-    public boolean save() {
-        if (this.itTyId != null) return false;
-
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("name", this.itemTypeName);
-        data.put("description", this.description);
-
-        Integer newId = DBConnection.getInstance().insertIntoTableAndGetId("item_types", data);
-        if (newId != null) {
-            this.itTyId = newId;
-            return true;
-        }
-        return false;
-    }
-
-    public void refresh() {
-        if (this.itTyId == null) return;
-
-        // Uses the generic fetchRow helper
-        Map<String, Object> data = DBConnection.getInstance().fetchRow("item_types", "it_ty_id", this.itTyId);
-
-        if (data != null) {
-            this.itemTypeName = (String) data.get("name");
-            this.description = (String) data.get("description");
-        }
-    }
-
     @Override
     public String toString() {
-        return itemTypeName; // Useful for ComboBox display
+        return itemTypeName;
     }
-
-//    public static void main(String[] args) {
-//        DBConnection.initialize("localhost", "root", "", "masdewotrue");
-//        new ItemType("Adapter", "").save();
-//        new ItemType("L Plate", "").save();
-//        new ItemType("Silicone", "").save();
-//        new ItemType("Batre", "").save();
-//        new ItemType("Strap", "").save();
-//        new ItemType("Memory", "").save();
-//        new ItemType("Cleaning Kit", "").save();
-//        new ItemType("Studio", "").save();
-//        new ItemType("Efek Foto", "").save();
-//        new ItemType("Acc", "").save();
-//        new ItemType("Kotak Musik", "").save();
-//    }
 }

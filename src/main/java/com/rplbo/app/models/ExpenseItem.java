@@ -1,12 +1,10 @@
 package com.rplbo.app.models;
 
-import com.rplbo.app.db.DBConnection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class ExpenseItem {
+public class ExpenseItem extends ActiveRecord {
+
     private Integer exItId;      // Primary Key (ex_it_id)
     private int expenseId;       // Foreign Key to expenses
     private int itemId;          // Foreign Key to items
@@ -27,96 +25,137 @@ public class ExpenseItem {
 
     /**
      * Constructor for loading from Database Map
-     * Matches the output of db.selectAll() or db.fetchRow()
      */
     public ExpenseItem(Map<String, Object> data) {
-        this.exItId = (Integer) data.get("ex_it_id");
-        this.expenseId = (Integer) data.get("expense_id");
-        this.itemId = (Integer) data.get("item_id");
+        fromMap(data);
+    }
 
-        // Use Number casting to safely handle different JDBC numeric types
+    // ==================================================
+    // ActiveRecord Implementation
+    // ==================================================
+
+    @Override
+    protected String tableName() {
+        return "expense_items";
+    }
+
+    @Override
+    protected String primaryKeyColumn() {
+        return "ex_it_id";
+    }
+
+    @Override
+    protected Integer getId() {
+        return exItId;
+    }
+
+    @Override
+    protected void setId(Integer id) {
+        this.exItId = id;
+    }
+
+    @Override
+    public Map<String, Object> toMap() {
+        Map<String, Object> data = new LinkedHashMap<>();
+
+        data.put("expense_id", expenseId);
+        data.put("item_id", itemId);
+        data.put("quantity", quantity);
+        data.put("unit_price", unitPrice);
+        data.put("total_price", totalPrice);
+
+        return data;
+    }
+
+    @Override
+    public void fromMap(Map<String, Object> data) {
+        this.exItId = (Integer) data.get("ex_it_id");
+        this.expenseId = ((Number) data.get("expense_id")).intValue();
+        this.itemId = ((Number) data.get("item_id")).intValue();
         this.quantity = ((Number) data.get("quantity")).intValue();
         this.unitPrice = ((Number) data.get("unit_price")).doubleValue();
         this.totalPrice = ((Number) data.get("total_price")).doubleValue();
     }
 
-    // --- Active Record Helper ---
+    // ==================================================
+    // Getters
+    // ==================================================
 
-    private void executeUpdate(String field, Object value) {
-        if (this.exItId != null) {
-            Map<String, Object> updates = new LinkedHashMap<>();
-            updates.put(field, value);
-            DBConnection.getInstance().updateField("expense_items", "ex_it_id", this.exItId, updates);
-        }
+    public Integer getExItId() {
+        return exItId;
     }
 
-    // --- Getters ---
+    public int getExpenseId() {
+        return expenseId;
+    }
 
-    public Integer getExItId() { return exItId; }
-    public int getExpenseId() { return expenseId; }
-    public int getItemId() { return itemId; }
-    public int getQuantity() { return quantity; }
-    public double getUnitPrice() { return unitPrice; }
-    public double getTotalPrice() { return totalPrice; }
+    public int getItemId() {
+        return itemId;
+    }
 
-    // --- Setters (Updates DB immediately + Includes your Python validation) ---
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public double getUnitPrice() {
+        return unitPrice;
+    }
+
+    public double getTotalPrice() {
+        return totalPrice;
+    }
+
+    // ==================================================
+    // Setters (Auto-update DB)
+    // ==================================================
+
+    public void setExpenseId(int expenseId) {
+        this.expenseId = expenseId;
+        executeUpdate("expense_id", expenseId);
+    }
+
+    public void setItemId(int itemId) {
+        this.itemId = itemId;
+        executeUpdate("item_id", itemId);
+    }
 
     public void setQuantity(int quantity) {
-        if (quantity <= 0) throw new IllegalArgumentException("Quantity must be positive");
+        if (quantity <= 0)
+            throw new IllegalArgumentException("Quantity must be positive");
+
         this.quantity = quantity;
         executeUpdate("quantity", quantity);
     }
 
     public void setUnitPrice(double unitPrice) {
-        if (unitPrice <= 0) throw new IllegalArgumentException("Unit Price must be positive");
+        if (unitPrice <= 0)
+            throw new IllegalArgumentException("Unit Price must be positive");
+
         this.unitPrice = unitPrice;
         executeUpdate("unit_price", unitPrice);
     }
 
     public void setTotalPrice(double totalPrice) {
-        if (totalPrice <= 0) throw new IllegalArgumentException("Total Price must be positive");
+        if (totalPrice <= 0)
+            throw new IllegalArgumentException("Total Price must be positive");
+
         this.totalPrice = totalPrice;
         executeUpdate("total_price", totalPrice);
     }
 
-    // --- Persistence & Logic ---
-
-    public boolean save() {
-        if (this.exItId != null) return false;
-
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("expense_id", this.expenseId);
-        data.put("item_id", this.itemId);
-        data.put("quantity", this.quantity);
-        data.put("unit_price", this.unitPrice);
-        data.put("total_price", this.totalPrice);
-
-        Integer newId = DBConnection.getInstance().insertIntoTableAndGetId("expense_items", data);
-        if (newId != null) {
-            this.exItId = newId;
-            return true;
-        }
-        return false;
-    }
-
-    public void refresh() {
-        if (this.exItId == null) return;
-
-        // Use the generic fetchRow helper
-        Map<String, Object> data = DBConnection.getInstance().fetchRow("expense_items", "ex_it_id", this.exItId);
-
-        if (data != null) {
-            this.expenseId = (Integer) data.get("expense_id");
-            this.itemId = (Integer) data.get("item_id");
-            this.quantity = ((Number) data.get("quantity")).intValue();
-            this.unitPrice = ((Number) data.get("unit_price")).doubleValue();
-            this.totalPrice = ((Number) data.get("total_price")).doubleValue();
-        }
-    }
+    // ==================================================
+    // Utility
+    // ==================================================
 
     @Override
     public String toString() {
-        return String.format("ExpenseItem[ID=%d, ExpenseID=%d, ItemID=%d, Qty=%d, Total=%.2f]",
-                exItId, expenseId, itemId, quantity, totalPrice);
+        return String.format(
+                "ExpenseItem[ID=%d, ExpenseID=%d, ItemID=%d, Qty=%d, Total=%.2f]",
+                exItId,
+                expenseId,
+                itemId,
+                quantity,
+                totalPrice
+        );
     }
 }
