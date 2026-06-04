@@ -25,7 +25,6 @@ import com.rplbo.app.dao.UserDAO;
 import com.rplbo.app.db.DBConnection;
 import com.rplbo.app.models.User;
 import javafx.application.Application;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
