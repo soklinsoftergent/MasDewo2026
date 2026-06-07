@@ -3,6 +3,7 @@ package com.rplbo.app.ui;
 import com.rplbo.app.dao.ItemDAO;
 import com.rplbo.app.models.Item;
 import com.rplbo.app.models.ItemType;
+import com.rplbo.app.services.CloudSyncService;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -15,10 +16,9 @@ import java.text.DecimalFormat;
 import java.util.List;
 
 public class InventoryController {
-
     // --- FXML Bindings ---
     @FXML private TextField inventorySearchField;
-    @FXML private Button addProductButton, editStockButton, inventoryFilterButton;
+    @FXML private Button addProductButton, editStockButton, inventoryFilterButton, syncToCloudButton;
     @FXML private TableView<Item> inventoryTable;
     @FXML private TableColumn<Item, String> inventoryNameColumn, inventoryCategoryColumn,
             inventoryStockColumn, inventoryBuyColumn,
@@ -64,6 +64,14 @@ public class InventoryController {
 
         // 5. Platform Placeholder (Can be expanded if platform logic is added)
         inventoryPlatformColumn.setCellValueFactory(d -> new SimpleStringProperty("Store"));
+
+        inventoryPlatformColumn.setCellValueFactory(d -> {
+            Integer extId = d.getValue().getExternalId();
+            if (extId == null) {
+                return new SimpleStringProperty("Cloud ID: " + extId);
+            }
+            return new SimpleStringProperty("Lokal");
+        });
     }
 
     private void loadData() {
@@ -91,7 +99,27 @@ public class InventoryController {
     private void wireActions() {
         addProductButton.setOnAction(e -> handleAddProduct());
         editStockButton.setOnAction(e -> handleEditStock());
+        syncToCloudButton.setOnAction(e -> handleSyncToCloudAction());
     }
+
+    @FXML
+    private void handleSyncToCloudAction() {
+        Item selected = inventoryTable.getSelectionModel().getSelectedItem();
+
+        if (selected == null) {
+            showAlert("Peringatan", "Pilih produk terlebih dahulu dari tabel untuk di-sync!");
+            return;
+        }
+
+        if (selected.getExternalId() != null) {
+            showAlert("Info", "Produk ini sudah tersinkronisasi ke Cloud (ID: " + selected.getExternalId() + ").");
+            return;
+        }
+
+        // Panggil fungsi sync yang sudah Anda buat
+        handleSyncToCloud(selected);
+    }
+
 
     @FXML
     private void handleAddProduct() {
@@ -254,4 +282,27 @@ public class InventoryController {
         a.setContentText(msg);
         a.show();
     }
+
+    private void handleSyncToCloud(Item item) {
+        CloudSyncService syncService = new CloudSyncService();
+
+        System.out.println("☁️ Menghubungkan ke server e-commerce...");
+
+        syncService.syncItemToCloud(item).thenAccept(remoteId -> {
+            if (remoteId != null) {
+                // Update local DB dengan ID dari cloud (Gunakan ActiveRecord!)
+                // Kita asumsikan ada method setExternalId di model Item
+                item.setExternalId(remoteId);
+
+                javafx.application.Platform.runLater(() -> {
+                    new Alert(Alert.AlertType.INFORMATION, "Berhasil Listing!\nCloud ID: " + remoteId).show();
+                });
+            } else {
+                javafx.application.Platform.runLater(() -> {
+                    new Alert(Alert.AlertType.ERROR, "Gagal sinkronisasi ke cloud.").show();
+                });
+            }
+        });
+    }
+
 }
