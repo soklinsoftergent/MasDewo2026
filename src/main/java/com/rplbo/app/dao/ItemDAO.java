@@ -8,14 +8,17 @@ import java.sql.*;
 import java.util.*;
 
 public class ItemDAO {
-    private final InventoryTrie searchTree = new InventoryTrie();
+    private static final InventoryTrie searchTree = new InventoryTrie();
     private final DBConnection db = DBConnection.getInstance();
 
     public void initializeSearchTree() {
-        searchTree.clear(); // Pastikan tree kosong sebelum diisi ulang
-        for (Item item : getAllItems()) {
+        // Karena static, kita harus bersihkan dulu agar tidak duplikat saat refresh
+        searchTree.clear();
+        List<Item> all = getAllItems();
+        for (Item item : all) {
             searchTree.insert(item);
         }
+        System.out.println("🌳 [System] Search tree initialized with " + all.size() + " items.");
     }
 
     public List<Item> searchFast(String query) {
