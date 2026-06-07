@@ -1,5 +1,7 @@
 package com.rplbo.app.models;
 
+import com.rplbo.app.db.DBConnection;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -73,6 +75,34 @@ public class Item extends ActiveRecord {
         this.sellingPrice = ((Number) data.get("selling_price")).doubleValue();
         this.version = ((Number) data.get("version")).intValue();
         this.externalId = (data.get("external_id") != null) ? ((Number) data.get("external_id")).intValue() : null;
+    }
+
+    @Override
+    public boolean save() {
+        if (this.id != null) return false;
+
+        // 1. Siapkan data untuk insert awal
+        Map<String, Object> data = toMap();
+
+        // Karena kolom SKU NOT NULL, beri nilai sementara yang unik
+        data.put("sku", "PENDING-" + System.nanoTime());
+        data.put("version", 1);
+
+        // 2. Insert ke DB dan ambil ID yang baru saja dibuat
+        Integer newId = DBConnection.getInstance().insertIntoTableAndGetId(tableName(), data);
+
+        if (newId != null) {
+            this.id = newId;
+
+            // 3. PANGGIL SMART UTIL UNTUK GENERATE SKU
+            // Tidak perlu typename dari UI lagi!
+            this.sku = com.rplbo.app.util.SkuGenerator.generate(this.id, this.itTyId, this.brand, this.model);
+
+            // 4. Update SKU yang asli ke Database
+            executeUpdate("sku", this.sku);
+            return true;
+        }
+        return false;
     }
 
     // --- Setters (Auto-Sync) ---
