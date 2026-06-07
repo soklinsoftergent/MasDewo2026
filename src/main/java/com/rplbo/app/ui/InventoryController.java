@@ -4,6 +4,7 @@ import com.rplbo.app.dao.ItemDAO;
 import com.rplbo.app.models.Item;
 import com.rplbo.app.models.ItemType;
 import com.rplbo.app.services.CloudSyncService;
+import com.rplbo.app.util.CSVImporter;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -12,6 +13,8 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+
+import java.io.File;
 import java.text.DecimalFormat;
 import java.util.List;
 
@@ -305,4 +308,36 @@ public class InventoryController {
         });
     }
 
+    @FXML
+    private void handleBatchAdd() {
+        javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+        fileChooser.setTitle("Pilih File CSV Produk");
+        fileChooser.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+
+        File selectedFile = fileChooser.showOpenDialog(inventoryTable.getScene().getWindow());
+
+        if (selectedFile != null) {
+            // 1. Parse File
+            List<Item> itemsToImport = CSVImporter.parseItems(selectedFile);
+
+            if (itemsToImport.isEmpty()) {
+                showAlert("Error", "File kosong atau format salah!");
+                return;
+            }
+
+            // 2. Konfirmasi
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+                    "Impor " + itemsToImport.size() + " produk sekaligus?", ButtonType.YES, ButtonType.NO);
+
+            if (confirm.showAndWait().orElse(ButtonType.NO) == ButtonType.YES) {
+                // 3. Jalankan Batch Insert
+                if (itemDAO.batchInsert(itemsToImport)) {
+                    showAlert("Sukses", "Berhasil mengimpor " + itemsToImport.size() + " produk!");
+                    loadData(); // Refresh tabel UI
+                } else {
+                    showAlert("Gagal", "Terjadi kesalahan saat batch insert. Cek format data.");
+                }
+            }
+        }
+    }
 }
