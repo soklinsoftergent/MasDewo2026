@@ -8,71 +8,61 @@ import java.util.*;
 public class RestockDAO {
     private final DBConnection db = DBConnection.getInstance();
 
-    /**
-     * Menjalankan proses restok secara ATOMIK.
-     * 1. Simpan Pengeluaran (Expense)
-     * 2. Update Stok Barang (+ quantity)
-     * 3. Catat Log Audit (StockMovementLog)
-     * 4. Potong Saldo Kas (KasBalance)
-     */
-    public boolean executeRestock(Expense expense, List<ExpenseItem> items) {
+    public boolean executeRestock(Expense expense, List<ExpenseItem> items, int userId) {
         Connection conn = null;
         StockMovementDAO auditDAO = new StockMovementDAO();
 
         try {
             conn = db.getConnection();
-            conn.setAutoCommit(false); // MULAI TRANSAKSI
+            conn.setAutoCommit(false); // 🛡️ START ATOMIC TRANSACTION
 
-            // 1. Simpan Header Pengeluaran & Ambil ID
-            Integer expenseId = db.insertIntoTableAndGetId("expenses", expense.toMap());
-            if (expenseId == null) throw new SQLException("Gagal mencatat pengeluaran.");
+            // 1. Insert Expense Header
+            Integer expenseId = db.insertIntoTableAndGetId(conn, "expenses", expense.toMap());
+            if (expenseId == null) throw new SQLException("Gagal membuat header pengeluaran.");
 
             for (ExpenseItem ei : items) {
-                // 2. Ambil Stok Lama & Kunci Baris (Pessimistic Locking)
-                String checkSql = "SELECT stock FROM items WHERE id = ? FOR UPDATE";
+                // 2. Lock and Update Stock
+                String fetchSql = "SELECT stock FROM items WHERE id = ? FOR UPDATE";
                 int currentStock = 0;
-                try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
+                try (PreparedStatement ps = conn.prepareStatement(fetchSql)) {
                     ps.setInt(1, ei.getItemId());
                     ResultSet rs = ps.executeQuery();
                     if (rs.next()) currentStock = rs.getInt("stock");
                 }
 
-                // 3. Update Stok di Database
                 int newStock = currentStock + ei.getQuantity();
-                String updateSql = "UPDATE items SET stock = ?, version = version + 1 WHERE id = ?";
-                try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
-                    ps.setInt(1, newStock);
-                    ps.setInt(2, ei.getItemId());
-                    ps.executeUpdate();
-                }
+                db.updateField(conn, "items", "id", ei.getItemId(), Map.of("stock", newStock));
 
-                // 4. Catat ke Riwayat Perubahan Stok (Otomatis)
-                auditDAO.logChangeInTransaction(conn, ei.getItemId(), expense.getUserId(),
-                        ei.getQuantity(), "RESTOK_SUPPLIER #EXP-" + expenseId);
+                // 3. Log Stock Movement
+                auditDAO.logChangeInTransaction(conn, ei.getItemId(), userId,
+                        ei.getQuantity(), "RESTOK #EXP-" + expenseId);
 
-                // 5. Simpan Detail Item Pengeluaran
-                Map<String, Object> eiMap = ei.toMap();
-                eiMap.put("expense_id", expenseId); // Link ke header
-                db.insertIntoTable("expense_items", eiMap);
+                // 4. Save Expense Detail
+                Map<String, Object> detailMap = ei.toMap();
+                detailMap.put("expense_id", expenseId);
+                db.insertIntoTableAndGetId(conn, "expense_items", detailMap);
             }
 
-            // 6. Potong Saldo Kas
-            String updateKasSql = "UPDATE kas SET balance = balance - ? WHERE id = 1";
-            try (PreparedStatement ps = conn.prepareStatement(updateKasSql)) {
+            // 5. Update Global Kas Balance
+            String sqlKas = "UPDATE kas SET balance = balance - ? WHERE id = 1";
+            try (PreparedStatement ps = conn.prepareStatement(sqlKas)) {
                 ps.setDouble(1, expense.getTotal());
                 ps.executeUpdate();
             }
 
-            conn.commit(); // SELESAI & SIMPAN SEMUA
-            System.out.println("✅ Restok Berhasil. Stok bertambah & Kas berkurang.");
+            // 6. Record Kas Transaction
+            KasTransaction kt = new KasTransaction(userId, "EXPENSE", expense.getTotal(), "Restok #EXP-" + expenseId);
+            db.insertIntoTableAndGetId(conn, "kas_transactions", kt.toMap());
+
+            conn.commit(); // ✅ EVERYTHING SAVED
             return true;
 
         } catch (Exception e) {
-            System.err.println("❌ Restok Gagal: " + e.getMessage());
+            System.err.println("🔥 TRANSACTION FAILED: " + e.getMessage());
             try { if (conn != null) conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
             return false;
         } finally {
-            db.releaseConnection(conn);
+            db.releaseConnection(conn); // Return to pool
         }
     }
 }
