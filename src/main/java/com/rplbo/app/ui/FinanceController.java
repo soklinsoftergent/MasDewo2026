@@ -6,6 +6,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import java.text.DecimalFormat;
 import java.time.format.DateTimeFormatter;
@@ -13,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class FinanceController {
+public class FinanceController implements Refreshable {
 
     // --- FXML Bindings ---
     @FXML private Label cashBalanceLabel, totalIncomeLabel, totalExpenseLabel;
@@ -29,7 +30,7 @@ public class FinanceController {
     @FXML
     public void initialize() {
         setupTableColumns();
-        refreshFinanceData();
+        refresh();
     }
 
     private void setupTableColumns() {
@@ -51,7 +52,8 @@ public class FinanceController {
         financeAmountColumn.setCellFactory(col -> createAmountColorCell());
     }
 
-    public void refreshFinanceData() {
+    @Override
+    public void refresh() {
         loadSummaryCards();
         loadTransactionHistory();
     }

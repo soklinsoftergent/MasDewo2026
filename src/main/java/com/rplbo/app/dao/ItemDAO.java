@@ -8,14 +8,17 @@ import java.sql.*;
 import java.util.*;
 
 public class ItemDAO {
-    private final InventoryTrie searchTree = new InventoryTrie();
+    private static final InventoryTrie searchTree = new InventoryTrie();
     private final DBConnection db = DBConnection.getInstance();
 
     public void initializeSearchTree() {
-        searchTree.clear(); // Pastikan tree kosong sebelum diisi ulang
-        for (Item item : getAllItems()) {
+        // Karena static, kita harus bersihkan dulu agar tidak duplikat saat refresh
+        searchTree.clear();
+        List<Item> all = getAllItems();
+        for (Item item : all) {
             searchTree.insert(item);
         }
+        System.out.println("🌳 [System] Search tree initialized with " + all.size() + " items.");
     }
 
     public List<Item> searchFast(String query) {
@@ -25,7 +28,10 @@ public class ItemDAO {
     public List<Item> getAllItems() {
         List<Item> items = new ArrayList<>();
         List<Map<String, Object>> data = db.selectAll("items");
+        // Di dalam ItemDAO.java, method getAllItems
         for (Map<String, Object> row : data) {
+            // Tambahkan log ini untuk melihat data mana yang sedang diproses
+            System.out.println("Processing Item: " + row.get("name") + " | Data: " + row);
             items.add(new Item(row));
         }
         return items;
@@ -140,5 +146,34 @@ public class ItemDAO {
         }
 
         return distribution;
+    }
+
+    public boolean batchInsert(List<Item> items) {
+        Connection conn = null;
+        try {
+            conn = db.getConnection();
+            conn.setAutoCommit(false); // START TRANSACTION
+
+            for (Item item : items) {
+                // Kita butuh nama kategori untuk generate SKU otomatis
+                String typeName = getTypeNameById(item.getItTyId());
+
+                // Simpan menggunakan logic save() yang sudah ada
+                // Tapi karena kita dalam transaksi manual, kita panggil metode insert kustom
+                if (!item.save()) {
+                    throw new SQLException("Gagal menyimpan item: " + item.getName());
+                }
+            }
+
+            conn.commit();
+            initializeSearchTree(); // RE-INDEX TRIE setelah batch sukses
+            return true;
+        } catch (Exception e) {
+            try { if (conn != null) conn.rollback(); } catch (SQLException ex) {}
+            e.printStackTrace();
+            return false;
+        } finally {
+            db.releaseConnection(conn);
+        }
     }
 }

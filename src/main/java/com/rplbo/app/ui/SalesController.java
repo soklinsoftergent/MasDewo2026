@@ -1,22 +1,30 @@
 package com.rplbo.app.ui;
 
+import com.rplbo.app.dao.ItemDAO;
 import com.rplbo.app.dao.SaleDAO;
-import com.rplbo.app.models.Sale;
+import com.rplbo.app.models.*;
+import com.rplbo.app.services.UserSession;
 import com.rplbo.app.util.FormatterUtil;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class SalesController {
     @FXML private TableView<Map<String, Object>> salesTable;
@@ -24,6 +32,7 @@ public class SalesController {
             salesTotalColumn, salesCashierColumn, salesStatusColumn, salesProductsColumn, salesPlatformColumn;
 
     private final SaleDAO saleDAO = new SaleDAO();
+    private final ItemDAO itemDAO = new ItemDAO();
 
     @FXML
     public void initialize() {
@@ -110,8 +119,18 @@ public class SalesController {
         };
     }
 
+    // Perbarui method loadSalesHistory di SalesController.java
     public void loadSalesHistory() {
-        List<Map<String, Object>> data = saleDAO.getAllSalesDetailed();
+        User current = UserSession.getInstance().getCurrentUser();
+        if (current == null) return;
+
+        List<Map<String, Object>> data;
+        if (current.isAdmin()) {
+            data = saleDAO.getAllSalesDetailed(); // Admin lihat semua
+        } else {
+            data = saleDAO.getSalesByUserIdDetailed(current.getUserId()); // Staff lihat punya sendiri
+        }
+
         salesTable.setItems(FXCollections.observableArrayList(data));
     }
 
@@ -209,7 +228,20 @@ public class SalesController {
 
     @FXML
     private void handleNewTransaction() {
-        // Panggil Dialog POS yang sudah Anda buat sebelumnya
-        System.out.println("Membuka Layar Kasir...");
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/rplbo/app/pages/NewTransactionDialog.fxml"));
+            VBox root = loader.load();
+
+            NewTransactionController controller = loader.getController();
+            controller.setParentController(this); // Allow the dialog to refresh our table
+
+            Stage stage = new Stage();
+            stage.setTitle("NeoMasDewo - POS");
+            stage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+            stage.setScene(new javafx.scene.Scene(root));
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

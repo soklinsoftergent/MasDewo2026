@@ -3,6 +3,8 @@ package com.rplbo.app.ui;
 import com.rplbo.app.dao.ItemDAO;
 import com.rplbo.app.models.Item;
 import com.rplbo.app.models.ItemType;
+import com.rplbo.app.services.CloudSyncService;
+import com.rplbo.app.util.CSVImporter;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -11,14 +13,16 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+
+import java.io.File;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.List;
 
-public class InventoryController {
-
+public class InventoryController implements Refreshable {
     // --- FXML Bindings ---
     @FXML private TextField inventorySearchField;
-    @FXML private Button addProductButton, editStockButton, inventoryFilterButton;
+    @FXML private Button addProductButton, editStockButton, inventoryFilterButton, syncToCloudButton;
     @FXML private TableView<Item> inventoryTable;
     @FXML private TableColumn<Item, String> inventoryNameColumn, inventoryCategoryColumn,
             inventoryStockColumn, inventoryBuyColumn,
@@ -33,7 +37,7 @@ public class InventoryController {
     @FXML
     public void initialize() {
         setupTableColumns();
-        loadData();
+        refresh();
         setupSearchLogic();
         wireActions();
     }
@@ -64,9 +68,18 @@ public class InventoryController {
 
         // 5. Platform Placeholder (Can be expanded if platform logic is added)
         inventoryPlatformColumn.setCellValueFactory(d -> new SimpleStringProperty("Store"));
+
+        inventoryPlatformColumn.setCellValueFactory(d -> {
+            Integer extId = d.getValue().getExternalId();
+            if (extId != null) {
+                return new SimpleStringProperty("Cloud ID: " + extId);
+            }
+            return new SimpleStringProperty("Lokal");
+        });
     }
 
-    private void loadData() {
+    @Override
+    public void refresh() {
         List<Item> items = itemDAO.getAllItems();
         masterData.setAll(items);
         inventoryTable.setItems(masterData);
@@ -91,7 +104,27 @@ public class InventoryController {
     private void wireActions() {
         addProductButton.setOnAction(e -> handleAddProduct());
         editStockButton.setOnAction(e -> handleEditStock());
+        syncToCloudButton.setOnAction(e -> handleSyncToCloudAction());
     }
+
+    @FXML
+    private void handleSyncToCloudAction() {
+        Item selected = inventoryTable.getSelectionModel().getSelectedItem();
+
+        if (selected == null) {
+            showAlert("Peringatan", "Pilih produk terlebih dahulu dari tabel untuk di-sync!");
+            return;
+        }
+
+        if (selected.getExternalId() != null) {
+            showAlert("Info", "Produk ini sudah tersinkronisasi ke Cloud (ID: " + selected.getExternalId() + ").");
+            return;
+        }
+
+        // Panggil fungsi sync yang sudah Anda buat
+        handleSyncToCloud(selected);
+    }
+
 
     @FXML
     private void handleAddProduct() {
@@ -171,7 +204,7 @@ public class InventoryController {
                 // SIMPAN KE DATABASE (Menggunakan logic 2-step SKU kita)
                 if (newItem.save()) {
                     System.out.println("✅ Produk berhasil disimpan: " + newItem.getSku());
-                    loadData(); // Refresh Tabel utama
+                    refresh(); // Refresh Tabel utama
                 } else {
                     throw new Exception("Gagal menyimpan ke database. Cek apakah nama duplikat.");
                 }
@@ -253,5 +286,120 @@ public class InventoryController {
         a.setTitle(title);
         a.setContentText(msg);
         a.show();
+    }
+
+    private void handleSyncToCloud(Item item) {
+        CloudSyncService syncService = new CloudSyncService();
+
+        System.out.println("☁️ Menghubungkan ke server e-commerce...");
+
+        syncService.syncItemToCloud(item).thenAccept(remoteId -> {
+            if (remoteId != null) {
+                // Update local DB dengan ID dari cloud (Gunakan ActiveRecord!)
+                // Kita asumsikan ada method setExternalId di model Item
+                item.setExternalId(remoteId);
+
+                javafx.application.Platform.runLater(() -> {
+                    new Alert(Alert.AlertType.INFORMATION, "Berhasil Listing!\nCloud ID: " + remoteId).show();
+                });
+            } else {
+                javafx.application.Platform.runLater(() -> {
+                    new Alert(Alert.AlertType.ERROR, "Gagal sinkronisasi ke cloud.").show();
+                });
+            }
+        });
+    }
+
+    @FXML
+    private void handleBatchAdd() {
+        javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+        fileChooser.setTitle("Pilih File CSV Produk");
+        fileChooser.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+
+        File selectedFile = fileChooser.showOpenDialog(inventoryTable.getScene().getWindow());
+
+        if (selectedFile != null) {
+            // 1. Parse File
+            List<Item> itemsToImport = CSVImporter.parseItems(selectedFile);
+
+            if (itemsToImport.isEmpty()) {
+                showAlert("Error", "File kosong atau format salah!");
+                return;
+            }
+
+            // 2. Konfirmasi
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+                    "Impor " + itemsToImport.size() + " produk sekaligus?", ButtonType.YES, ButtonType.NO);
+
+            if (confirm.showAndWait().orElse(ButtonType.NO) == ButtonType.YES) {
+                // 3. Jalankan Batch Insert
+                if (itemDAO.batchInsert(itemsToImport)) {
+                    showAlert("Sukses", "Berhasil mengimpor " + itemsToImport.size() + " produk!");
+                    refresh(); // Refresh tabel UI
+                } else {
+                    showAlert("Gagal", "Terjadi kesalahan saat batch insert. Cek format data.");
+                }
+            }
+        }
+    }
+
+    @FXML
+    private void handleInventoryFilter() {
+        // 1. Ambil daftar kategori dari DAO untuk pilihan filter
+        List<ItemType> categories = itemDAO.getAllTypes();
+        List<String> options = new ArrayList<>();
+        options.add("Semua Barang");
+        options.add("⚠️ Stok Kritis (< 5)");
+        categories.forEach(c -> options.add(c.getItemTypeName()));
+
+        // 2. Tampilkan Dialog Pilihan
+        ChoiceDialog<String> dialog = new ChoiceDialog<>("Semua Barang", options);
+        dialog.setTitle("Filter Inventaris");
+        dialog.setHeaderText("Pilih kriteria penyaringan:");
+        dialog.setContentText("Kategori:");
+
+        dialog.showAndWait().ifPresent(selected -> {
+            FilteredList<Item> filteredData = new FilteredList<>(masterData, p -> true);
+
+            filteredData.setPredicate(item -> {
+                if (selected.equals("Semua Barang")) return true;
+
+                if (selected.equals("⚠️ Stok Kritis (< 5)")) {
+                    return item.getStock() < 5;
+                }
+
+                // Filter berdasarkan nama kategori
+                String itemCategory = itemDAO.getTypeNameById(item.getItTyId());
+                return itemCategory.equals(selected);
+            });
+
+            inventoryTable.setItems(filteredData);
+            inventoryFilterButton.setText("Filter: " + selected);
+
+            // Ubah warna tombol jika filter aktif agar user ingat
+            inventoryFilterButton.setStyle("-fx-border-color: #79e07c; -fx-text-fill: #79e07c;");
+        });
+    }
+
+    @FXML
+    private void handleEditProduct() {
+        Item selected = inventoryTable.getSelectionModel().getSelectedItem();
+        if (selected == null) return;
+
+        TextInputDialog dialog = new TextInputDialog(String.valueOf(selected.getSellingPrice()));
+        dialog.setTitle("Edit Harga");
+        dialog.setHeaderText("Ubah Harga Jual: " + selected.getName());
+        dialog.setContentText("Harga Baru (Rp):");
+
+        dialog.showAndWait().ifPresent(input -> {
+            try {
+                double newPrice = Double.parseDouble(input);
+                selected.setSellingPrice(newPrice); // ActiveRecord otomatis UPDATE ke DB
+                inventoryTable.refresh();
+                new Alert(Alert.AlertType.INFORMATION, "Harga berhasil diperbarui!").show();
+            } catch (NumberFormatException e) {
+                showAlert("Error", "Input harus berupa angka!");
+            }
+        });
     }
 }

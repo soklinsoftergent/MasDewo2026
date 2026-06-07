@@ -2,6 +2,7 @@ package com.rplbo.app.ui;
 
 import com.rplbo.app.dao.SaleDAO;
 import com.rplbo.app.models.Sale;
+import com.rplbo.app.services.UserSession;
 import com.rplbo.app.util.FormatterUtil;
 import com.rplbo.app.util.ReceiptGenerator;
 import javafx.beans.property.SimpleStringProperty;
@@ -59,5 +60,27 @@ public class SalesDetailController {
             Alert alert = new Alert(Alert.AlertType.INFORMATION, "Struk telah dikirim ke folder Downloads.");
             alert.show();
         }
+    }
+
+    @FXML
+    private void handleVoidSale() {
+        // 🛡️ Hanya Admin yang boleh membatalkan
+        if (!com.rplbo.app.services.UserSession.getInstance().isAdmin()) {
+            new Alert(Alert.AlertType.ERROR, "Akses Ditolak: Hanya Admin yang bisa membatalkan transaksi!").show();
+            return;
+        }
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "Batalkan transaksi ini? Stok akan dikembalikan dan saldo kas dipotong.", ButtonType.YES, ButtonType.NO);
+        confirm.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.YES) {
+                int adminId = com.rplbo.app.services.UserSession.getInstance().getCurrentUser().getUserId();
+                // Panggil SaleDAO.voidSale yang sudah kita buat tadi
+                if (saleDAO.voidSale(currentSale.getSaleId(), adminId)) {
+                    new Alert(Alert.AlertType.INFORMATION, "Transaksi berhasil dibatalkan.").show();
+                    // Refresh data setelah batal
+                    setSaleData(currentSale);
+                }
+            }
+        });
     }
 }

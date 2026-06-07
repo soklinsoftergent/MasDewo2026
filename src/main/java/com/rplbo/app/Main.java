@@ -2,6 +2,7 @@ package com.rplbo.app;
 
 import com.rplbo.app.db.DBConnection;
 import com.rplbo.app.db.DBInitializer;
+import com.rplbo.app.dao.ItemDAO;
 import javafx.application.Application;
 
 public class Main {
@@ -16,6 +17,7 @@ public class Main {
 
             // 2. Ensure Database structure and seed data exists
             DBInitializer.run();
+            new ItemDAO().initializeSearchTree();
 
             // 3. Launch JavaFX Application
             Application.launch(MainApplication.class, args);

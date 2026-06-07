@@ -1,5 +1,6 @@
 package com.rplbo.app.models;
 
+import com.rplbo.app.db.DBConnection;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.util.LinkedHashMap;
@@ -192,5 +193,12 @@ public class User extends ActiveRecord {
                 userPhoneNumber != null ? userPhoneNumber : "N/A",
                 isAdmin ? "Yes" : "No"
         );
+    }
+
+    // RUN INI DULU SUPAYA DAPAT ADMIN
+    public static void main(String[] args) {
+        DBConnection.initialize();
+        User newUser = new User("Dewo", "gentisamudra@gmail.com", "SapeidherM4n-","082135317248", true);
+        newUser.save();
     }
 }

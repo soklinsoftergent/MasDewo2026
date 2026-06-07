@@ -1,144 +1,212 @@
--- 1. Create the Database
+-- ========================================================
+-- DATABASE: masdewo
+-- Dokumentasi: Skema Relasional Terintegrasi (Omnichannel ERP)
+-- Tanggal: 03 Juni 2026
+-- ========================================================
+
 CREATE DATABASE IF NOT EXISTS masdewo;
 USE masdewo;
 
--- 2. User & Access Management
-CREATE TABLE roles (
-    role_id INT PRIMARY KEY AUTO_INCREMENT,
-    role_name VARCHAR(50) NOT NULL
-);
+-- Matikan pengecekan kunci asing sementara
+SET FOREIGN_KEY_CHECKS = 0;
 
+-- 1. Tabel Master: roles (Izin Akses)
+CREATE TABLE roles (
+    role_id INT(11) PRIMARY KEY AUTO_INCREMENT,
+    role_name VARCHAR(50) NOT NULL
+) ENGINE=InnoDB;
+
+-- 2. Tabel Master: customers (Pelanggan)
+CREATE TABLE customers (
+    cust_id INT(11) PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255) NOT NULL,
+    phone_number VARCHAR(20) DEFAULT NULL,
+    email VARCHAR(100) DEFAULT NULL,
+    address TEXT DEFAULT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- 3. Tabel Master: ecommerces (Platform Penjualan)
+CREATE TABLE ecommerces (
+    ecom_id INT(11) PRIMARY KEY AUTO_INCREMENT,
+    ecom_name VARCHAR(100) NOT NULL,
+    ecom_platform_fee DECIMAL(5,2) DEFAULT 0.00,
+    platform_url VARCHAR(255) DEFAULT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- 4. Tabel Master: item_types (Kategori Barang)
+CREATE TABLE item_types (
+    it_ty_id INT(11) PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    description TEXT DEFAULT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- 5. Tabel Master: suppliers (Vendor/Pemasok)
+CREATE TABLE suppliers (
+    supplier_id INT(11) PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255) NOT NULL,
+    phone_number VARCHAR(20) DEFAULT NULL,
+    email VARCHAR(100) DEFAULT NULL,
+    address TEXT DEFAULT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- 6. Tabel Master: kas (Saldo Utama)
+CREATE TABLE kas (
+    id INT(11) PRIMARY KEY,
+    balance DECIMAL(15,2) NOT NULL DEFAULT 0.00
+) ENGINE=InnoDB;
+
+-- 7. Tabel Utama: users (Karyawan & Admin)
 CREATE TABLE users (
-    user_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT(11) PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
-    phonenumber VARCHAR(20),
+    phonenumber VARCHAR(20) DEFAULT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    role_id INT,
-    is_active BOOLEAN DEFAULT TRUE,
-    FOREIGN KEY (role_id) REFERENCES roles(role_id)
-);
+    role_id INT(11),
+    is_active TINYINT(1) DEFAULT 1,
+    FOREIGN KEY (role_id) REFERENCES roles(role_id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
 
--- 3. Inventory & Categorization
-CREATE TABLE item_types (
-    it_ty_id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
+-- 8. Tabel Utama: items (Inventaris)
 CREATE TABLE items (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+    id INT(11) PRIMARY KEY AUTO_INCREMENT,
+    sku VARCHAR(50) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
-    stock INT DEFAULT 0,
-    it_ty_id INT,
+    brand VARCHAR(30) NOT NULL,
+    model VARCHAR(30) NOT NULL,
+    image VARCHAR(255) DEFAULT NULL,
+    stock INT(11) DEFAULT 0,
+    it_ty_id INT(11),
+    supplier_id INT(11),
     purchase_price DECIMAL(15,2) NOT NULL,
     selling_price DECIMAL(15,2) NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (it_ty_id) REFERENCES item_types(it_ty_id)
-);
+    version INT(11) NOT NULL DEFAULT 1,
+    external_id INT(11) DEFAULT NULL,
+    FOREIGN KEY (it_ty_id) REFERENCES item_types(it_ty_id) ON DELETE RESTRICT,
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
 
--- 4. E-Commerce Multi-Channel
-CREATE TABLE ecommerces (
-    ecom_id INT PRIMARY KEY AUTO_INCREMENT,
-    ecom_name VARCHAR(100) NOT NULL,
-    ecom_platform_fee DECIMAL(5,2) DEFAULT 0.00,
-    platform_url VARCHAR(255),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
+-- 9. Tabel: ecommerce_items (Listing Marketplace)
 CREATE TABLE ecommerce_items (
-    ecom_item_id INT PRIMARY KEY AUTO_INCREMENT,
-    item_id INT,
-    ecom_id INT,
-    price_override DECIMAL(15,2),
+    ecom_item_id INT(11) PRIMARY KEY AUTO_INCREMENT,
+    item_id INT(11),
+    ecom_id INT(11),
+    price_override DECIMAL(15,2) DEFAULT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (item_id) REFERENCES items(id),
-    FOREIGN KEY (ecom_id) REFERENCES ecommerces(ecom_id)
-);
+    external_listing_id VARCHAR(100) DEFAULT NULL,
+    synced_stock INT(11) NOT NULL DEFAULT 0,
+    sync_status ENUM('SYNCED', 'PENDING', 'FAILED') DEFAULT 'SYNCED',
+    last_sync DATETIME DEFAULT NULL,
+    FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE RESTRICT,
+    FOREIGN KEY (ecom_id) REFERENCES ecommerces(ecom_id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
 
--- 5. Sales & Customer Tracking
-CREATE TABLE customers (
-    cust_id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(255) NOT NULL,
-    phone_number VARCHAR(20),
-    email VARCHAR(100),
-    address TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
+-- 10. Tabel: sales (Transaksi Penjualan)
 CREATE TABLE sales (
-    sale_id INT PRIMARY KEY AUTO_INCREMENT,
-    cust_id INT,
-    user_id INT,
-    ecom_id INT,
+    sale_id INT(11) PRIMARY KEY AUTO_INCREMENT,
+    cust_id INT(11),
+    user_id INT(11),
+    ecom_id INT(11),
     total_amount DECIMAL(15,2) NOT NULL,
-    is_paid BOOLEAN DEFAULT FALSE,
-    is_cancelled BOOLEAN DEFAULT FALSE,
-    payment_method VARCHAR(50),
+    discount_amount DECIMAL(15,2) DEFAULT 0.00,
+    is_paid TINYINT(1) DEFAULT 0,
+    is_cancelled TINYINT(1) DEFAULT 0,
+    payment_method VARCHAR(50) DEFAULT NULL,
     logistics_fee DECIMAL(15,2) DEFAULT 0.00,
     profit DECIMAL(15,2) DEFAULT 0.00,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (cust_id) REFERENCES customers(cust_id),
-    FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (ecom_id) REFERENCES ecommerces(ecom_id)
-);
+    external_order_id VARCHAR(100) DEFAULT NULL,
+    FOREIGN KEY (cust_id) REFERENCES customers(cust_id) ON DELETE RESTRICT,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE RESTRICT,
+    FOREIGN KEY (ecom_id) REFERENCES ecommerces(ecom_id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
 
+-- 11. Tabel: sale_items (Detail Barang Terjual)
 CREATE TABLE sale_items (
-    sa_it_id INT PRIMARY KEY AUTO_INCREMENT,
-    sale_id INT,
-    item_id INT,
-    quantity INT NOT NULL,
+    sa_it_id INT(11) PRIMARY KEY AUTO_INCREMENT,
+    sale_id INT(11),
+    item_id INT(11),
+    quantity INT(11) NOT NULL,
     unit_price DECIMAL(15,2) NOT NULL,
     total_price DECIMAL(15,2) NOT NULL,
     FOREIGN KEY (sale_id) REFERENCES sales(sale_id) ON DELETE CASCADE,
-    FOREIGN KEY (item_id) REFERENCES items(id)
-);
+    FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
 
--- 6. Financials & Expenses
+-- 12. Tabel: expenses (Pengeluaran Operasional)
 CREATE TABLE expenses (
-    expense_id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT,
+    expense_id INT(11) PRIMARY KEY AUTO_INCREMENT,
+    user_id INT(11),
     total DECIMAL(15,2) NOT NULL,
-    description TEXT,
+    description TEXT DEFAULT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id)
-);
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
 
+-- 13. Tabel: expense_items (Detail Belanja Stok)
 CREATE TABLE expense_items (
-    ex_it_id INT PRIMARY KEY AUTO_INCREMENT,
-    expense_id INT,
-    item_id INT,
-    quantity INT NOT NULL,
+    ex_it_id INT(11) PRIMARY KEY AUTO_INCREMENT,
+    expense_id INT(11),
+    item_id INT(11),
+    quantity INT(11) NOT NULL,
     unit_price DECIMAL(15,2) NOT NULL,
     total_price DECIMAL(15,2) NOT NULL,
     FOREIGN KEY (expense_id) REFERENCES expenses(expense_id) ON DELETE CASCADE,
-    FOREIGN KEY (item_id) REFERENCES items(id)
-);
+    FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
 
+-- 14. Tabel: kas_transactions (Log Mutasi Uang)
 CREATE TABLE kas_transactions (
-    kas_trans_id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT,
+    kas_trans_id INT(11) PRIMARY KEY AUTO_INCREMENT,
+    user_id INT(11),
     type ENUM('INCOME', 'EXPENSE') NOT NULL,
     transaction_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    description TEXT,
+    description TEXT DEFAULT NULL,
     amount DECIMAL(15,2) NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(user_id)
-);
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
 
-CREATE TABLE kas (
-    id INT PRIMARY KEY,
-    balance DECIMAL(15,2) NOT NULL DEFAULT 0.00
-);
+-- 15. Tabel: attendance (Presensi)
+CREATE TABLE attendance (
+    attendance_id INT(11) PRIMARY KEY AUTO_INCREMENT,
+    user_id INT(11) NOT NULL,
+    work_date DATE NOT NULL,
+    clock_in DATETIME DEFAULT NULL,
+    clock_out DATETIME DEFAULT NULL,
+    notes TEXT DEFAULT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
 
--- 7. Audit Trail
+-- 16. Tabel: stock_movement_logs (Audit Trail)
 CREATE TABLE stock_movement_logs (
-    log_id INT PRIMARY KEY AUTO_INCREMENT,
-    item_id INT,
-    user_id INT,
-    quantity_changed INT NOT NULL,
-    reason VARCHAR(255),
+    log_id INT(11) PRIMARY KEY AUTO_INCREMENT,
+    item_id INT(11),
+    user_id INT(11),
+    quantity_changed INT(11) NOT NULL,
+    reason VARCHAR(255) DEFAULT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (item_id) REFERENCES items(id),
-    FOREIGN KEY (user_id) REFERENCES users(user_id)
-);
+    FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE RESTRICT,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+-- Kembalikan pengecekan kunci asing
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- ========================================================
+-- DATA AWAL (ESSENTIAL SEEDING)
+-- ========================================================
+
+INSERT IGNORE INTO roles (role_id, role_name) VALUES (1, 'Admin'), (2, 'Staff');
+INSERT IGNORE INTO kas (id, balance) VALUES (1, 0.00);
+
+-- Default Admin (Password: Supaidaa-M4n)
+INSERT IGNORE INTO users (user_id, username, email, password_hash, role_id, is_active) 
+VALUES (1, 'admin', 'admin@masdewo.com', '$2a$10$ByI6gP.b2Y4909NnB0f2/O73Gj6qf0q9W.t8u7t5D7z1D6yGg5KGi', 1, 1);
+
+-- Default Guest Customer
+INSERT IGNORE INTO customers (cust_id, name) VALUES (1, 'Guest Customer');

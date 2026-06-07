@@ -10,7 +10,18 @@ public class ECommerceItem extends ActiveRecord {
     private int itemId;
     private int ecommerceId;
     private Double priceOverride;
+    private String externalListingId;
+    private int syncedStock;
+    private String syncStatus;
+    private LocalDateTime lastSync;
     private LocalDateTime addedAt;
+
+    /**
+     * Constructor from database row
+     */
+    public ECommerceItem(Map<String, Object> data) {
+        fromMap(data);
+    }
 
     /**
      * Constructor for NEW record
@@ -20,13 +31,6 @@ public class ECommerceItem extends ActiveRecord {
         this.ecommerceId = ecommerceId;
         this.priceOverride = priceOverride;
         this.addedAt = LocalDateTime.now();
-    }
-
-    /**
-     * Constructor from database row
-     */
-    public ECommerceItem(Map<String, Object> data) {
-        fromMap(data);
     }
 
     // =====================================================
@@ -55,36 +59,29 @@ public class ECommerceItem extends ActiveRecord {
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> data = new LinkedHashMap<>();
-
-        data.put("item_id", itemId);
-        data.put("ecom_id", ecommerceId);
-        data.put("price_override", priceOverride);
-        data.put("created_at", addedAt);
-
-        return data;
+        Map<String, Object> map = new java.util.LinkedHashMap<>();
+        map.put("item_id", itemId);
+        map.put("ecom_id", ecommerceId);
+        map.put("price_override", priceOverride);
+        map.put("created_at", addedAt);
+        map.put("external_listing_id", externalListingId);
+        map.put("synced_stock", syncedStock);
+        map.put("sync_status", syncStatus);
+        map.put("last_sync", lastSync);
+        return map;
     }
 
     @Override
     public void fromMap(Map<String, Object> data) {
-
         this.eCommerceItemId = (Integer) data.get("ecom_item_id");
-
-        Object itemObj = data.get("item_id");
-        this.itemId = itemObj == null ? 0 : ((Number) itemObj).intValue();
-
-        Object ecomObj = data.get("ecom_id");
-        this.ecommerceId = ecomObj == null ? 0 : ((Number) ecomObj).intValue();
-
-        Object priceObj = data.get("price_override");
-        this.priceOverride = priceObj == null
-                ? null
-                : ((Number) priceObj).doubleValue();
-
-        Object createdObj = data.get("created_at");
-        this.addedAt = createdObj instanceof LocalDateTime
-                ? (LocalDateTime) createdObj
-                : LocalDateTime.now();
+        this.itemId = (Integer) data.get("item_id");
+        this.ecommerceId = (Integer) data.get("ecom_id");
+        this.priceOverride = data.get("price_override") != null ? ((Number) data.get("price_override")).doubleValue() : null;
+        this.addedAt = (LocalDateTime) data.get("created_at");
+        this.externalListingId = (String) data.get("external_listing_id");
+        this.syncedStock = ((Number) data.get("synced_stock")).intValue();
+        this.syncStatus = (String) data.get("sync_status");
+        this.lastSync = (LocalDateTime) data.get("last_sync");
     }
 
     // =====================================================
@@ -111,6 +108,8 @@ public class ECommerceItem extends ActiveRecord {
         return addedAt;
     }
 
+    public String getExternalListingId() { return externalListingId; }
+
     // =====================================================
     // Setters (Auto DB Update)
     // =====================================================
@@ -128,6 +127,16 @@ public class ECommerceItem extends ActiveRecord {
     public void setPriceOverride(Double priceOverride) {
         this.priceOverride = priceOverride;
         executeUpdate("price_override", priceOverride);
+    }
+
+    // Setters for Sync logic
+    public void markSynced(int stock) {
+        this.syncedStock = stock;
+        this.syncStatus = "SYNCED";
+        this.lastSync = LocalDateTime.now();
+        executeUpdate("synced_stock", syncedStock);
+        executeUpdate("sync_status", syncStatus);
+        executeUpdate("last_sync", lastSync);
     }
 
     // =====================================================

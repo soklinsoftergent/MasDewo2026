@@ -19,6 +19,7 @@ public class Supplier extends ActiveRecord {
         this.phoneNumber = phoneNumber;
         this.email = email;
         this.address = address;
+        this.createdAt = LocalDateTime.now();
     }
 
     public Supplier(Map<String, Object> map) { fromMap(map); }
