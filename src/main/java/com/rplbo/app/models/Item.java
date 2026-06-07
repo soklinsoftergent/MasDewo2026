@@ -16,6 +16,7 @@ public class Item extends ActiveRecord {
     private double purchasePrice;
     private double sellingPrice;
     private int version;
+    private Integer externalId;
 
     // --- Constructors ---
     public Item(String name, String brand, String model, int stock, int itTyId, double buy, double sell) {
@@ -27,6 +28,7 @@ public class Item extends ActiveRecord {
         this.purchasePrice = buy;
         this.sellingPrice = sell;
         this.version = 1; // Default version untuk barang baru
+        this.externalId = null;
     }
 
     public Item(Map<String, Object> data) { fromMap(data); }
@@ -52,6 +54,7 @@ public class Item extends ActiveRecord {
         data.put("purchase_price", purchasePrice);
         data.put("selling_price", sellingPrice);
         data.put("version", version);
+        data.put("external_id", externalId);
         return data;
     }
 
@@ -69,6 +72,7 @@ public class Item extends ActiveRecord {
         this.purchasePrice = ((Number) data.get("purchase_price")).doubleValue();
         this.sellingPrice = ((Number) data.get("selling_price")).doubleValue();
         this.version = ((Number) data.get("version")).intValue();
+        this.externalId = (data.get("external_id") != null) ? ((Number) data.get("external_id")).intValue() : null;
     }
 
     // --- Setters (Auto-Sync) ---
@@ -82,12 +86,20 @@ public class Item extends ActiveRecord {
         executeUpdate("image", path);
     }
 
+    public void setExternalId(Integer externalId) {
+        this.externalId = externalId;
+        // Sekarang kita bisa memanggil executeUpdate karena kita berada di dalam kelas Item
+        executeUpdate("external_id", externalId);
+    }
+
     // --- Getters ---
     public String getSku() { return sku; }
     public String getName() { return name; }
+    public String getBrand() { return brand; }
     public int getStock() { return stock; }
     public double getSellingPrice() { return sellingPrice; }
     public double getPurchasePrice() { return purchasePrice; }
     public int getVersion() { return version; }
     public int getItTyId() { return itTyId; }
+    public Integer getExternalId() { return externalId; }
 }
