@@ -144,4 +144,33 @@ public class ItemDAO {
 
         return distribution;
     }
+
+    public boolean batchInsert(List<Item> items) {
+        Connection conn = null;
+        try {
+            conn = db.getConnection();
+            conn.setAutoCommit(false); // START TRANSACTION
+
+            for (Item item : items) {
+                // Kita butuh nama kategori untuk generate SKU otomatis
+                String typeName = getTypeNameById(item.getItTyId());
+
+                // Simpan menggunakan logic save() yang sudah ada
+                // Tapi karena kita dalam transaksi manual, kita panggil metode insert kustom
+                if (!item.save()) {
+                    throw new SQLException("Gagal menyimpan item: " + item.getName());
+                }
+            }
+
+            conn.commit();
+            initializeSearchTree(); // RE-INDEX TRIE setelah batch sukses
+            return true;
+        } catch (Exception e) {
+            try { if (conn != null) conn.rollback(); } catch (SQLException ex) {}
+            e.printStackTrace();
+            return false;
+        } finally {
+            db.releaseConnection(conn);
+        }
+    }
 }
