@@ -54,7 +54,7 @@ public class KasTransaction extends ActiveRecord {
         this.amount = ((Number) data.get("amount")).doubleValue();
         this.description = (String) data.get("description");
 
-        Object dateObj = data.get("transaction_date");
+        Object dateObj = safeDateTime(data.get("transaction_date"));
         this.transactionDate = (dateObj instanceof LocalDateTime) ?
                 (LocalDateTime) dateObj : LocalDateTime.now();
     }

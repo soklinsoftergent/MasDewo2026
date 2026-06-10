@@ -82,9 +82,9 @@ public class Expense extends ActiveRecord {
 
         this.description = (String) data.get("description");
 
-        Object createdObj = data.get("created_at");
-        this.createdAt = createdObj instanceof LocalDateTime
-                ? (LocalDateTime) createdObj
+        LocalDateTime createdObj = safeDateTime(data.get("created_at"));
+        this.createdAt = createdObj != null
+                ? createdObj
                 : LocalDateTime.now();
     }
 

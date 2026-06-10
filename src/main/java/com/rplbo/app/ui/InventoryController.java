@@ -26,10 +26,10 @@ public class InventoryController implements Refreshable {
     @FXML private TextField inventorySearchField;
     @FXML private Button addProductButton, editStockButton, inventoryFilterButton, syncToCloudButton;
     @FXML private TableView<Item> inventoryTable;
-    @FXML private TableColumn<Item, String> inventoryNameColumn, inventoryCategoryColumn,
+    @FXML private TableColumn<Item, String> inventorySkuColumn, inventoryNameColumn, inventoryCategoryColumn,
             inventoryStockColumn, inventoryBuyColumn,
             inventorySellColumn, inventoryStatusColumn,
-            inventoryPlatformColumn;
+            inventoryPlatformColumn, inventoryExternalIdColumn;
 
     // --- Members ---
     private final ItemDAO itemDAO = new ItemDAO();
@@ -50,6 +50,10 @@ public class InventoryController implements Refreshable {
     }
 
     private void setupTableColumns() {
+        // 1. Mapping SKU
+        inventorySkuColumn.setCellValueFactory(d -> new SimpleStringProperty(
+                d.getValue().getSku() != null ? d.getValue().getSku() : "-"
+        ));
         // 1. Basic Mappings
         inventoryNameColumn.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getName()));
         inventoryStockColumn.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getStock())));
@@ -82,6 +86,28 @@ public class InventoryController implements Refreshable {
                 return new SimpleStringProperty("Cloud ID: " + extId);
             }
             return new SimpleStringProperty("Lokal");
+        });
+        // 5. Mapping External ID (Cloud ID)
+        inventoryExternalIdColumn.setCellValueFactory(d -> {
+            Integer extId = d.getValue().getExternalId();
+            return new SimpleStringProperty(extId != null ? String.valueOf(extId) : "Lokal Only");
+        });
+        // Beri gaya italic/muted jika masih Lokal Only
+        inventoryExternalIdColumn.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item);
+                    if (item.equals("Lokal Only")) {
+                        setStyle("-fx-text-fill: #8a98a4; -fx-font-style: italic;");
+                    } else {
+                        setStyle("-fx-text-fill: #79e07c; -fx-font-weight: bold;"); // Warna hijau jika tersinkron
+                    }
+                }
+            }
         });
     }
 
@@ -148,6 +174,7 @@ public class InventoryController implements Refreshable {
         TextField nameField = createStyledField("Nama Produk (Unique)");
         TextField brandField = createStyledField("Brand (misal: Sony, Fotga)");
         TextField modelField = createStyledField("Model/Tipe (misal: A7iii, M42)");
+        TextField externalIdField = createStyledField("ID Marketplace/Cloud (Opsional)");
 
         ComboBox<ItemType> typeCombo = new ComboBox<>();
         typeCombo.setItems(FXCollections.observableArrayList(itemDAO.getAllTypes()));
@@ -178,6 +205,8 @@ public class InventoryController implements Refreshable {
         grid.add(buyPriceField, 1, 5);
         grid.add(createLabel("Harga Jual:", labelStyle), 0, 6);
         grid.add(sellPriceField, 1, 6);
+        grid.add(createLabel("External ID:", labelStyle), 0, 7);
+        grid.add(externalIdField, 1, 7);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -199,6 +228,8 @@ public class InventoryController implements Refreshable {
                 String typeName = typeCombo.getValue().getItemTypeName();
                 double buy = Double.parseDouble(buyPriceField.getText().replace(",", ""));
                 double sell = Double.parseDouble(sellPriceField.getText().replace(",", ""));
+                String extIdRaw = externalIdField.getText().trim();
+                Integer externalId = extIdRaw.isEmpty() ? null : Integer.parseInt(extIdRaw);
 
                 // BUAT OBJEK (Tanpa SKU karena akan di-generate otomatis)
                 Item newItem = new Item(name, brand, model, stock, typeId, buy, sell);
@@ -237,28 +268,144 @@ public class InventoryController implements Refreshable {
         return l;
     }
 
+    @FXML
     private void handleEditStock() {
         Item selected = inventoryTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
-            showAlert("Peringatan", "Pilih produk terlebih dahulu!");
+            showAlert("Peringatan", "Pilih produk yang ingin diedit dari tabel!");
             return;
         }
 
-        // Simple InputDialog to update stock
-        TextInputDialog dialog = new TextInputDialog(String.valueOf(selected.getStock()));
-        dialog.setTitle("Edit Stok");
-        dialog.setHeaderText("Update stok untuk: " + selected.getName());
-        dialog.setContentText("Jumlah stok baru:");
+        // 1. Setup Dialog (Tetap sama)
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Edit Produk: " + selected.getSku());
+        dialog.setHeaderText("Kosongkan kolom jika tidak ingin mengubah datanya");
+        dialog.getDialogPane().setStyle("-fx-background-color: #1f1f1f; -fx-border-color: #4d667b;");
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
-        dialog.showAndWait().ifPresent(input -> {
+        // 2. Buat Form Input
+        // Kita berikan PromptText berupa data saat ini agar user tahu isinya apa
+        GridPane grid = new GridPane();
+        grid.setHgap(10); grid.setVgap(15);
+        grid.setPadding(new Insets(20));
+
+        TextField nameField = createStyledField("");
+        nameField.setPromptText(selected.getName()); // Tampilkan nama lama sebagai bantuan
+
+        TextField brandField = createStyledField("");
+        brandField.setPromptText(selected.getBrand());
+
+        TextField modelField = createStyledField("");
+        modelField.setPromptText(selected.getModel());
+
+        ComboBox<ItemType> typeCombo = new ComboBox<>();
+        typeCombo.setItems(FXCollections.observableArrayList(itemDAO.getAllTypes()));
+        typeCombo.setPromptText("Kategori saat ini: " + itemDAO.getTypeNameById(selected.getItTyId()));
+        typeCombo.setMaxWidth(Double.MAX_VALUE);
+        typeCombo.setStyle("-fx-background-color: #3d5062; -fx-text-fill: white;");
+
+        // Gunakan TextField biasa untuk harga agar bisa dikosongkan (Spinner sulit dikosongkan)
+        TextField stockField = createStyledField("");
+        stockField.setPromptText(String.valueOf(selected.getStock()));
+
+        TextField buyPriceField = createStyledField("");
+        buyPriceField.setPromptText(idr.format(selected.getPurchasePrice()));
+
+        TextField sellPriceField = createStyledField("");
+        sellPriceField.setPromptText(idr.format(selected.getSellingPrice()));
+
+        TextField extIdField = createStyledField("");
+        extIdField.setPromptText(selected.getExternalId() != null ? String.valueOf(selected.getExternalId()) : "N/A");
+
+        // Tambahkan ke Grid (Sama seperti sebelumnya)
+        String labelStyle = "-fx-text-fill: #dbe7ef; -fx-font-weight: bold;";
+        grid.add(createLabel("Nama Produk:", labelStyle), 0, 0);
+        grid.add(nameField, 1, 0);
+        grid.add(createLabel("Brand:", labelStyle), 0, 1);
+        grid.add(brandField, 1, 1);
+        grid.add(createLabel("Model:", labelStyle), 0, 2);
+        grid.add(modelField, 1, 2);
+        grid.add(createLabel("Kategori:", labelStyle), 0, 3);
+        grid.add(typeCombo, 1, 3);
+        grid.add(createLabel("Stok Baru:", labelStyle), 0, 4);
+        grid.add(stockField, 1, 4);
+        grid.add(createLabel("Harga Beli:", labelStyle), 0, 5);
+        grid.add(buyPriceField, 1, 5);
+        grid.add(createLabel("Harga Jual:", labelStyle), 0, 6);
+        grid.add(sellPriceField, 1, 6);
+        grid.add(createLabel("External ID:", labelStyle), 0, 7);
+        grid.add(extIdField, 1, 7);
+
+        dialog.getDialogPane().setContent(grid);
+
+        // 3. Logika Update saat OK diklik
+        final Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.addEventFilter(ActionEvent.ACTION, event -> {
             try {
-                int newStock = Integer.parseInt(input);
-                selected.setStock(newStock); // ActiveRecord handles DB Update
+                // LOGIKA DEFAULT: Jika kosong gunakan 'selected.getX()'
+
+                String newName = nameField.getText().trim().isEmpty() ?
+                        selected.getName() : nameField.getText().trim();
+
+                String newBrand = brandField.getText().trim().isEmpty() ?
+                        selected.getBrand() : brandField.getText().trim();
+
+                String newModel = modelField.getText().trim().isEmpty() ?
+                        selected.getModel() : modelField.getText().trim();
+
+                int newTypeId = (typeCombo.getValue() == null) ?
+                        selected.getItTyId() : typeCombo.getValue().getItTyId();
+
+                int newStock = stockField.getText().trim().isEmpty() ?
+                        selected.getStock() : Integer.parseInt(stockField.getText().trim());
+
+                double newBuy = buyPriceField.getText().trim().isEmpty() ?
+                        selected.getPurchasePrice() : Double.parseDouble(buyPriceField.getText().trim());
+
+                double newSell = sellPriceField.getText().trim().isEmpty() ?
+                        selected.getSellingPrice() : Double.parseDouble(sellPriceField.getText().trim());
+
+                String extIdRaw = extIdField.getText().trim();
+                Integer newExtId;
+
+                if (extIdRaw.isEmpty()) {
+                    // Jika input kosong, ambil nilai lama (bisa Integer null, tidak akan crash)
+                    newExtId = selected.getExternalId();
+                } else {
+                    // Jika ada input, gunakan Integer.valueOf agar tetap menjadi Object Integer
+                    try {
+                        newExtId = Integer.valueOf(extIdRaw);
+                    } catch (NumberFormatException e) {
+                        newExtId = selected.getExternalId(); // Fallback jika input salah
+                    }
+                }
+
+                // 4. Update Objek (ActiveRecord memproses ke DB)
+                selected.setName(newName);
+                selected.setBrand(newBrand);
+                selected.setModel(newModel);
+                selected.setItemTypeId(newTypeId);
+                selected.setStock(newStock);
+                selected.setPurchasePrice(newBuy);
+                selected.setSellingPrice(newSell);
+                selected.setExternalId(newExtId);
+
+                // 5. Regenerasi SKU (Otomatis menyesuaikan jika ada perubahan)
+                selected.applySmartSku();
+
                 inventoryTable.refresh();
+                System.out.println("✅ Update selesai untuk SKU: " + selected.getSku());
+
             } catch (NumberFormatException e) {
-                showAlert("Error", "Input harus berupa angka!");
+                showAlert("Input Error", "Stok dan Harga harus berupa angka!");
+                event.consume();
+            } catch (Exception e) {
+                showAlert("Error", "Gagal: " + e.getMessage());
+                event.consume();
             }
         });
+
+        dialog.showAndWait();
     }
 
     // --- UI Helper: Badge Styling ---

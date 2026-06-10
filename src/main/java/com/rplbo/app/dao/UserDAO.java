@@ -65,11 +65,17 @@ public class UserDAO {
     }
 
     public List<Map<String, Object>> getUnifiedEmployeeLogs(int userId) {
+        DBConnection db = DBConnection.getInstance();
+
+        // Tentukan fungsi padding berdasarkan database yang aktif
+        String paddingFunc = db.isSqlite() ? "printf('%04d', sale_id)" : "LPAD(sale_id, 4, '0')";
+        String expPadding = db.isSqlite() ? "printf('%04d', expense_id)" : "LPAD(expense_id, 4, '0')";
+
         String sql =
-                "SELECT 'Penjualan' as aksi, CONCAT('#INV-', LPAD(sale_id, 4, '0')) as referensi, total_amount as nominal, created_at as waktu " +
+                "SELECT 'Penjualan' as aksi, CONCAT('#INV-', " + paddingFunc + ") as referensi, total_amount as nominal, created_at as waktu " +
                         "FROM sales WHERE user_id = ? " +
                         "UNION ALL " +
-                        "SELECT 'Restok' as aksi, CONCAT('#EXP-', LPAD(expense_id, 4, '0')) as referensi, total as nominal, created_at as waktu " +
+                        "SELECT 'Restok' as aksi, CONCAT('#EXP-', " + expPadding + ") as referensi, total as nominal, created_at as waktu " +
                         "FROM expenses WHERE user_id = ? " +
                         "UNION ALL " +
                         "SELECT 'Absen Masuk' as aksi, '-' as referensi, 0 as nominal, clock_in as waktu " +
@@ -79,8 +85,7 @@ public class UserDAO {
                         "FROM attendance WHERE user_id = ? AND clock_out IS NOT NULL " +
                         "ORDER BY waktu DESC";
 
-        // Kita kirim userId 4 kali karena ada 4 tanda tanya (?) di query UNION
-        return DBConnection.getInstance().selectAllCustom(sql, userId, userId, userId, userId);
+        return db.selectAllCustom(sql, userId, userId, userId, userId);
     }
 
 }

@@ -17,8 +17,20 @@ public class SkuGenerator {
         if (typePart.length() < 3) typePart = typeName.substring(0, Math.min(typeName.length(), 3)).toUpperCase();
 
         // 3. Persingkat Brand & Model
-        String brandPart = (brand != null && brand.length() >= 3) ? brand.substring(0, 3).toUpperCase() : "GEN";
-        String modelPart = (model != null && model.length() >= 3) ? model.substring(0, 3).toUpperCase() : "MDL";
+        String brandPart;
+        if ((brand != null && brand.length() >= 3)) {
+            brandPart = brand.substring(0, 3).toUpperCase();
+        } else {
+            assert brand != null;
+            brandPart = brand.toUpperCase();
+        }
+        String modelPart;
+        if ((model != null && model.length() >= 3)) {
+            modelPart = model.substring(0, 3).toUpperCase();
+        } else {
+            assert model != null;
+            modelPart = model.toUpperCase();
+        }
 
         // 4. Gabungkan dengan ID unik
         return String.format("%s-%s-%s-%03d", typePart, brandPart, modelPart, itemId);

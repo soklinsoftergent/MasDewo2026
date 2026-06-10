@@ -77,11 +77,11 @@ public class ECommerceItem extends ActiveRecord {
         this.itemId = (Integer) data.get("item_id");
         this.ecommerceId = (Integer) data.get("ecom_id");
         this.priceOverride = data.get("price_override") != null ? ((Number) data.get("price_override")).doubleValue() : null;
-        this.addedAt = (LocalDateTime) data.get("created_at");
+        this.addedAt = safeDateTime(data.get("created_at"));
         this.externalListingId = (String) data.get("external_listing_id");
         this.syncedStock = ((Number) data.get("synced_stock")).intValue();
         this.syncStatus = (String) data.get("sync_status");
-        this.lastSync = (LocalDateTime) data.get("last_sync");
+        this.lastSync = safeDateTime(data.get("last_sync"));
     }
 
     // =====================================================
@@ -163,4 +163,6 @@ public class ECommerceItem extends ActiveRecord {
                 ecommerceId
         );
     }
+
+
 }

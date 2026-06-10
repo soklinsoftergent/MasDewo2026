@@ -56,12 +56,9 @@ public class Attendance extends ActiveRecord {
         this.attendanceId = (Integer) map.get("attendance_id");
         this.userId = (Integer) map.get("user_id");
         this.notes = (String)  map.get("notes");
-
-        this.workDate = (map.get("work_date") instanceof java.sql.Date) ?
-                ((java.sql.Date) map.get("work_date")).toLocalDate() : (LocalDate) map.get("work_date");
-
-        this.clockIn = (LocalDateTime) map.get("clock_in");
-        this.clockOut = (LocalDateTime) map.get("clock_out");
+        this.workDate = safeDate(map.get("work_date"));
+        this.clockIn = safeDateTime(map.get("clock_in"));
+        this.clockOut = safeDateTime(map.get("clock_out"));
     }
 
     // Business

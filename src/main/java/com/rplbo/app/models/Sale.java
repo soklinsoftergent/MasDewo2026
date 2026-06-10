@@ -81,7 +81,7 @@ public class Sale extends ActiveRecord {
 
         this.paymentMethod = (String) data.get("payment_method");
 
-        Object createdAtObj = data.get("created_at");
+        Object createdAtObj = safeDateTime(data.get("created_at"));
         this.createdAt = (createdAtObj instanceof LocalDateTime) ?
                 (LocalDateTime) createdAtObj : LocalDateTime.now();
     }

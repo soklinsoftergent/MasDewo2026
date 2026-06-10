@@ -26,7 +26,7 @@ public class StockMovementLog extends ActiveRecord {
         this.userId = (Integer) data.get("user_id");
         this.quantityChanged = ((Number) data.get("quantity_changed")).intValue();
         this.reason = (String) data.get("reason");
-        this.createdAt = (LocalDateTime) data.get("created_at");
+        this.createdAt = safeDateTime(data.get("created_at"));
     }
 
     @Override

@@ -1,10 +1,7 @@
 package com.rplbo.app.dao;
 
 import com.rplbo.app.db.DBConnection;
-import com.rplbo.app.models.Item;
-import com.rplbo.app.models.KasTransaction;
-import com.rplbo.app.models.Sale;
-import com.rplbo.app.models.SaleItem;
+import com.rplbo.app.models.*;
 import com.rplbo.app.services.OmniSyncService;
 import com.rplbo.app.util.DataStateSignal;
 
@@ -85,7 +82,10 @@ public class SaleDAO {
             for (SaleItem si : items) {
                 // A. Ambil Stok Terbaru & Kunci Baris
                 int currentStock = 0;
-                String checkSql = "SELECT stock FROM items WHERE id = ? FOR UPDATE";
+                String checkSql = "SELECT stock FROM items WHERE id = ?";
+                if (db.getDialect() == DBConnection.Dialect.MYSQL) {
+                    checkSql += " FOR UPDATE"; // Hanya tambahkan jika pakai MySQL
+                }
                 try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
                     ps.setInt(1, si.getItemId());
                     try (ResultSet rs = ps.executeQuery()) {
@@ -292,4 +292,70 @@ public class SaleDAO {
         return db.selectAllCustom(sql, userId);
     }
 
+    // Tambahkan ke src/main/java/com/rplbo/app/dao/SaleDAO.java
+
+    /**
+     * Mengambil daftar semua platform e-commerce untuk pilihan di UI.
+     */
+    public List<ECommerce> getAllECommerces() {
+        List<ECommerce> list = new ArrayList<>();
+        List<Map<String, Object>> data = db.selectAll("ecommerces");
+        if (data != null) {
+            for (Map<String, Object> row : data) {
+                list.add(new ECommerce(row));
+            }
+        }
+        return list;
+    }
+
+    /**
+     * Mencari pelanggan berdasarkan nama, jika tidak ada maka buat otomatis.
+     * Sesuai requirement: Jika detail kosong, buat "New Customer [timestamp]".
+     */
+    public int ensureCustomer(String name, String phone, String email, String address) {
+        if (name == null || name.trim().isEmpty()) {
+            name = "New Customer " + (System.currentTimeMillis() % 10000);
+        }
+
+        // 1. Cari apakah nama sudah ada (Case Insensitive)
+        String sql = "SELECT cust_id FROM customers WHERE name = ? LIMIT 1";
+        List<Map<String, Object>> result = db.selectAllCustom(sql, name);
+
+        if (result != null && !result.isEmpty()) {
+            return ((Number) result.get(0).get("cust_id")).intValue();
+        }
+
+        // 2. Jika tidak ada, buat baru menggunakan ActiveRecord
+        Customer newCust = new Customer(name, phone, email, address);
+        if (newCust.save()) {
+            return newCust.getCustId();
+        }
+
+        return 1; // Default fallback ke Guest ID 1
+    }
+
+    /**
+     * Checks if an ECommerce platform exists by name.
+     * If not, creates it automatically.
+     */
+    public int ensureECommerce(String name) {
+        // 1. Search for existing platform by name
+        String sql = "SELECT ecom_id FROM ecommerces WHERE ecom_name = ? LIMIT 1";
+        List<Map<String, Object>> result = db.selectAllCustom(sql, name);
+
+        if (result != null && !result.isEmpty()) {
+            return ((Number) result.get(0).get("ecom_id")).intValue();
+        }
+
+        // 2. Not found? Create a new "Kasir" platform entry
+        System.out.println("➕ Creating default platform: " + name);
+        ECommerce newEcom = new ECommerce(name, 0.0, "Local POS");
+
+        // ActiveRecord save logic
+        if (newEcom.save()) {
+            return newEcom.getEcomId();
+        }
+
+        return 3; // Absolute fallback to ID 3 (the original Offline Store ID)
+    }
 }

@@ -121,6 +121,12 @@ public class Item extends ActiveRecord {
     }
 
     // --- Setters (Auto-Sync) ---
+    public void setName(String name) { this.name = name; executeUpdate("name", this.name); }
+    public void setBrand(String brand) { this.brand = brand; executeUpdate("brand", this.brand); }
+    public void setModel(String model) { this.model = model; executeUpdate("model", this.model); }
+    public void setItemTypeId(Integer itTyId) { this.itTyId = itTyId; executeUpdate("it_ty_id", itTyId); }
+    public void setPurchasePrice(Double newPurchasePrice) { this.purchasePrice = newPurchasePrice; executeUpdate("purchase_price", this.purchasePrice); }
+
     public void setStock(int stock) {
         this.stock = stock;
         executeUpdate("stock", stock);
@@ -131,15 +137,20 @@ public class Item extends ActiveRecord {
         executeUpdate("image", path);
     }
 
-    public void setExternalId(Integer externalId) {
+    public void setExternalId(Integer externalId) { // Harus Integer (Object)
         this.externalId = externalId;
-        // Sekarang kita bisa memanggil executeUpdate karena kita berada di dalam kelas Item
+        // Database helper kita (updateField) sudah bisa menangani nilai null secara otomatis
         executeUpdate("external_id", externalId);
     }
 
     public void setSellingPrice(double sellingPrice) {
         this.sellingPrice = sellingPrice;
         executeUpdate("selling_price", sellingPrice);
+    }
+
+    public void setSku(String newSku) {
+        this.sku = newSku;
+        executeUpdate("sku", sku);
     }
 
     // --- Getters ---
@@ -152,4 +163,21 @@ public class Item extends ActiveRecord {
     public int getVersion() { return version; }
     public int getItTyId() { return itTyId; }
     public Integer getExternalId() { return externalId; }
+    public String getModel() { return model; }
+
+    // Di dalam src/main/java/com/rplbo/app/models/Item.java
+
+    /**
+     * Memperbarui SKU objek dan database berdasarkan data Brand/Model/Tipe saat ini.
+     */
+    public void applySmartSku() {
+        // Gunakan SkuGenerator util yang sudah kita buat
+        String newSku = com.rplbo.app.util.SkuGenerator.generate(
+                this.getId(),
+                this.getItTyId(),
+                this.brand,
+                this.model
+        );
+        this.setSku(newSku); // Ini akan memicu executeUpdate("sku", newSku)
+    }
 }

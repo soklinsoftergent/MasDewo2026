@@ -1,6 +1,9 @@
 package com.rplbo.app.models;
 
 import com.rplbo.app.db.DBConnection;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -49,6 +52,65 @@ public abstract class ActiveRecord {
         }
     }
 
-    
+    /**
+     * Helper untuk menangani perbedaan format tanggal antara MySQL dan SQLite.
+     */
+    protected LocalDateTime safeDateTime(Object obj) {
+        if (obj == null) return LocalDateTime.now();
 
+        // Jika sudah berupa LocalDateTime (MySQL)
+        if (obj instanceof LocalDateTime) {
+            return (LocalDateTime) obj;
+        }
+
+        // Jika berupa Timestamp (Beberapa versi MySQL driver)
+        if (obj instanceof java.sql.Timestamp) {
+            return ((java.sql.Timestamp) obj).toLocalDateTime();
+        }
+
+        // Jika berupa String (SQLite)
+        if (obj instanceof String) {
+            String dateStr = (String) obj;
+            // SQLite biasanya pakai format "yyyy-MM-dd HH:mm:ss"
+            // Kita ubah spasi menjadi 'T' agar sesuai standar ISO (yyyy-MM-ddTHH:mm:ss)
+            try {
+                return LocalDateTime.parse(dateStr.replace(" ", "T"));
+            } catch (Exception e) {
+                // Jika formatnya hanya tanggal saja
+                return LocalDateTime.now();
+            }
+        }
+
+        return LocalDateTime.now();
+    }
+
+//    // Di dalam ActiveRecord.java
+//    protected LocalDateTime safeDateTime(Object obj) {
+//        if (obj == null) return null;
+//        if (obj instanceof LocalDateTime) return (LocalDateTime) obj;
+//        if (obj instanceof java.sql.Timestamp) return ((java.sql.Timestamp) obj).toLocalDateTime();
+//        if (obj instanceof String) {
+//            try {
+//                return LocalDateTime.parse(((String) obj).replace(" ", "T"));
+//            } catch (Exception e) {
+//                return null;
+//            }
+//        }
+//        return null;
+//    }
+
+    protected LocalDate safeDate(Object obj) {
+        if (obj == null) return null;
+        if (obj instanceof LocalDate) return (LocalDate) obj;
+        if (obj instanceof java.sql.Date) return ((java.sql.Date) obj).toLocalDate();
+        if (obj instanceof String) {
+            try {
+                // Mengambil 10 karakter pertama (yyyy-MM-dd) jika formatnya panjang
+                return LocalDate.parse(((String) obj).substring(0, 10));
+            } catch (Exception e) {
+                return null;
+            }
+        }
+        return null;
+    }
 }

@@ -25,7 +25,10 @@ public class RestockDAO {
                 // 2. Ambil Stok Lama & Kunci Row (Pessimistic Locking)
                 // Kita lakukan manual agar tetap dalam satu koneksi transaksi 'conn'
                 int currentStock = 0;
-                String checkSql = "SELECT stock FROM items WHERE id = ? FOR UPDATE";
+                String checkSql = "SELECT stock FROM items WHERE id = ?";
+                if (db.getDialect() == DBConnection.Dialect.MYSQL) {
+                    checkSql += " FOR UPDATE";
+                }
                 try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
                     ps.setInt(1, ei.getItemId());
                     try (ResultSet rs = ps.executeQuery()) {

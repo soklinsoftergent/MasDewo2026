@@ -23,6 +23,21 @@
                 <!-- RIGHT: Cart Section -->
                 <VBox spacing="10.0" HBox.hgrow="ALWAYS">
                     <children>
+                        <Label text="Informasi Transaksi" style="-fx-text-fill: #dbe7ef; -fx-font-weight: bold;"/>
+                        <HBox spacing="10.0">
+                            <children>
+                                <TextField fx:id="custNameField" promptText="Nama Pelanggan" HBox.hgrow="ALWAYS"
+                                           style="-fx-background-color: #1f1f1f; -fx-text-fill: white; -fx-border-color: #4d667b;"/>
+                                <TextField fx:id="custPhoneField" promptText="No. Telepon" HBox.hgrow="ALWAYS"
+                                           style="-fx-background-color: #1f1f1f; -fx-text-fill: white; -fx-border-color: #4d667b;"/>
+                                <TextField fx:id="custEmailField" promptText="Email" HBox.hgrow="ALWAYS"
+                                           style="-fx-background-color: #1f1f1f; -fx-text-fill: white; -fx-border-color: #4d667b;"/>
+                                <TextField fx:id="custAddressField" promptText="Alamat Pelanggan" HBox.hgrow="ALWAYS"
+                                           style="-fx-background-color: #1f1f1f; -fx-text-fill: white; -fx-border-color: #4d667b;"/>
+                                <ComboBox fx:id="ecomCombo" promptText="Pilih Platform" prefWidth="150.0"
+                                          style="-fx-background-color: #3d5062; -fx-text-fill: white;"/>
+                            </children>
+                        </HBox>
                         <TableView fx:id="cartTable" VBox.vgrow="ALWAYS" style="-fx-background-color: #4d667b; -fx-background-radius: 10;">
                             <columns>
                                 <TableColumn fx:id="colName" prefWidth="200.0" text="Produk" />

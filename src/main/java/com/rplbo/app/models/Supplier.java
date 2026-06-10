@@ -59,7 +59,7 @@ public class Supplier extends ActiveRecord {
         this.phoneNumber = (String) map.get("phone_number");
         this.email = (String) map.get("email");
         this.address = (String) map.get("address");
-        this.createdAt = (LocalDateTime) map.get("created_at");
+        this.createdAt = safeDateTime(map.get("created_at"));
     }
 
     @Override
