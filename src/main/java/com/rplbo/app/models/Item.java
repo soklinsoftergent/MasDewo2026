@@ -68,13 +68,28 @@ public class Item extends ActiveRecord {
         this.brand = (String) data.get("brand");
         this.model = (String) data.get("model");
         this.image = (String) data.get("image");
-        this.stock = ((Number) data.get("stock")).intValue();
-        this.itTyId = ((Number) data.get("it_ty_id")).intValue();
-        this.supplierId = (data.get("supplier_id") != null) ? ((Number) data.get("supplier_id")).intValue() : null;
-        this.purchasePrice = ((Number) data.get("purchase_price")).doubleValue();
-        this.sellingPrice = ((Number) data.get("selling_price")).doubleValue();
-        this.version = ((Number) data.get("version")).intValue();
-        this.externalId = (data.get("external_id") != null) ? ((Number) data.get("external_id")).intValue() : null;
+
+        // --- USE SAFE CASTING TO PREVENT THE CRASH ---
+        this.stock = safeInt(data.get("stock"));
+        this.itTyId = safeInt(data.get("it_ty_id"));
+        this.version = safeInt(data.get("version"));
+
+        Object supp = data.get("supplier_id");
+        this.supplierId = (supp != null) ? ((Number) supp).intValue() : null;
+
+        this.purchasePrice = safeDouble(data.get("purchase_price"));
+        this.sellingPrice = safeDouble(data.get("selling_price"));
+    }
+
+    // Add these private helpers at the bottom of Item.java
+    private int safeInt(Object obj) {
+        if (obj == null) return 0;
+        return ((Number) obj).intValue();
+    }
+
+    private double safeDouble(Object obj) {
+        if (obj == null) return 0.0;
+        return ((Number) obj).doubleValue();
     }
 
     @Override
