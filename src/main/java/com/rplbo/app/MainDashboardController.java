@@ -8,11 +8,16 @@ import com.rplbo.app.ui.FinanceController;
 import com.rplbo.app.ui.InventoryController;
 import com.rplbo.app.ui.SalesController;
 import com.rplbo.app.util.CSVExporter;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.stage.Stage;
+
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.*;
@@ -46,13 +51,19 @@ public class MainDashboardController {
     @FXML
     public void initialize() {
         setupAccessControl();
+
+        updateCriticalStockBadge();
         // Set up the "Jump to Inventory" logic from the header badge
         criticalStockBadge.setOnMouseClicked(event -> {
             showInventory();
-            if (globalInventorySearchField != null) {
-                globalInventorySearchField.setText("Kritis");
-                // This triggers the listener automatically
-            }
+            // Berikan delay sedikit agar halaman inventory termuat sebelum kita set pencarian
+            javafx.application.Platform.runLater(() -> {
+                if (globalInventorySearchField != null) {
+                    // Trik: trigger filter 'Kritis' di InventoryController
+                    globalInventorySearchField.setText(""); // clear dulu
+                    globalInventorySearchField.setText("Kritis");
+                }
+            });
         });
 
         showDashboard(); // Default startup view
@@ -95,6 +106,7 @@ public class MainDashboardController {
         if (com.rplbo.app.util.DataStateSignal.dashboardNeedsRefresh) {
             System.out.println("📊 Data Bisnis berubah. Me-refresh Dashboard...");
             controller.refresh();
+            updateCriticalStockBadge();
             com.rplbo.app.util.DataStateSignal.dashboardNeedsRefresh = false;
         }
 
@@ -370,6 +382,97 @@ public class MainDashboardController {
             new Alert(Alert.AlertType.INFORMATION, "Ringkasan Laba Rugi berhasil diekspor ke folder Downloads.").show();
         } else {
             new Alert(Alert.AlertType.WARNING, "Belum ada data transaksi untuk bulan ini.").show();
+        }
+    }
+
+    @FXML
+    private void handleLogout(ActionEvent event) {
+
+        try {
+
+            // 1. Destroy session
+            UserSession.getInstance().logout();
+
+            System.out.println("🚪 Logging out user...");
+
+            // 2. Load login page FIRST
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/com/rplbo/app/pages/LoginWindow.fxml")
+            );
+
+            Parent loginRoot = loader.load();
+
+            Stage loginStage = new Stage();
+
+            loginStage.setTitle("MasDewo Store - Login");
+            loginStage.setScene(new Scene(loginRoot));
+
+            loginStage.setResizable(false);
+            loginStage.sizeToScene();
+            loginStage.centerOnScreen();
+
+            // 3. Copy all currently opened windows
+            java.util.List<javafx.stage.Window> windows =
+                    new java.util.ArrayList<>(javafx.stage.Window.getWindows());
+
+            // 4. Close EVERYTHING
+            for (javafx.stage.Window window : windows) {
+
+                // Don't accidentally close the new login window
+                if (window != loginStage) {
+
+                    if (window instanceof Stage stage) {
+                        stage.close();
+                    }
+
+                }
+            }
+
+            // 5. Show fresh login page
+            loginStage.show();
+
+            System.out.println("✅ All application windows closed.");
+
+        } catch (IOException e) {
+
+            System.err.println("❌ Failed to return to login page.");
+            e.printStackTrace();
+
+            showAlert(
+                    Alert.AlertType.ERROR,
+                    "Logout Error",
+                    "Tidak bisa membuka halaman login."
+            );
+        }
+    }
+
+    private void showAlert(Alert.AlertType type, String title, String content) {
+        Alert alert = new Alert(type);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
+        alert.show();
+    }
+
+    // Di dalam MainDashboardController.java
+
+    /**
+     * Memperbarui angka pada badge di header secara real-time dari database.
+     */
+    private void updateCriticalStockBadge() {
+        // 1. Ambil daftar barang kritis dari DAO
+        List<Item> criticalItems = itemDAO.getLowStockItems(5);
+        int count = criticalItems.size();
+
+        // 2. Update Teks
+        criticalStockBadge.setText(count + " stok kritis");
+
+        // 3. Update Visual (Merah jika > 0, Hijau jika 0)
+        if (count > 0) {
+            criticalStockBadge.setStyle("-fx-background-color: #f7c2c5; -fx-text-fill: #b33f44; -fx-padding: 10 22; -fx-background-radius: 8; -fx-font-weight: 800;");
+        } else {
+            criticalStockBadge.setText("Stok Aman");
+            criticalStockBadge.setStyle("-fx-background-color: #dff8cd; -fx-text-fill: #4e8f4c; -fx-padding: 10 22; -fx-background-radius: 8; -fx-font-weight: 800;");
         }
     }
 }

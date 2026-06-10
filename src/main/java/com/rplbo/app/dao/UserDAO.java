@@ -64,4 +64,23 @@ public class UserDAO {
         return false;
     }
 
+    public List<Map<String, Object>> getUnifiedEmployeeLogs(int userId) {
+        String sql =
+                "SELECT 'Penjualan' as aksi, CONCAT('#INV-', LPAD(sale_id, 4, '0')) as referensi, total_amount as nominal, created_at as waktu " +
+                        "FROM sales WHERE user_id = ? " +
+                        "UNION ALL " +
+                        "SELECT 'Restok' as aksi, CONCAT('#EXP-', LPAD(expense_id, 4, '0')) as referensi, total as nominal, created_at as waktu " +
+                        "FROM expenses WHERE user_id = ? " +
+                        "UNION ALL " +
+                        "SELECT 'Absen Masuk' as aksi, '-' as referensi, 0 as nominal, clock_in as waktu " +
+                        "FROM attendance WHERE user_id = ? AND clock_in IS NOT NULL " +
+                        "UNION ALL " +
+                        "SELECT 'Absen Keluar' as aksi, '-' as referensi, 0 as nominal, clock_out as waktu " +
+                        "FROM attendance WHERE user_id = ? AND clock_out IS NOT NULL " +
+                        "ORDER BY waktu DESC";
+
+        // Kita kirim userId 4 kali karena ada 4 tanda tanya (?) di query UNION
+        return DBConnection.getInstance().selectAllCustom(sql, userId, userId, userId, userId);
+    }
+
 }

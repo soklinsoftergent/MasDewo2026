@@ -8,13 +8,10 @@
         <TextField fx:id="inventorySearchField" promptText="Cari transaksi..." style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: #efefef; -fx-prompt-text-fill: #6f6f6f; -fx-padding: 10 12;" HBox.hgrow="ALWAYS" />
         <Button fx:id="addProductButton" style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 18;" text="+ Tambah Produk" />
         <!-- Tambahkan di dalam HBox top bar InventoryPage.fxml -->
-        <Button onAction="#handleAddCategory" text="+ Tambah Kategori"
-                style="-fx-background-color: transparent; -fx-border-color: #d8c3ff; -fx-border-radius: 6; -fx-text-fill: #d8c3ff; -fx-font-weight: 800; -fx-padding: 10 18;" />
+        <Button onAction="#handleAddCategory" style="-fx-background-color: transparent; -fx-border-color: #d8c3ff; -fx-border-radius: 6; -fx-text-fill: #d8c3ff; -fx-font-weight: 800; -fx-padding: 10 18;" text="+ Tambah Kategori" />
         <Button fx:id="editStockButton" style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 18;" text="Edit Stok" />
-        <Button fx:id="inventoryFilterButton" style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 18;" text="Filter" />
-        <Button fx:id="syncToCloudButton" style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 18;" mnemonicParsing="false" text="Sync Cloud" />
-        <Button onAction="#handleBatchAdd" text="📥 Import CSV"
-                style="-fx-background-color: transparent; -fx-border-color: #79e07c; -fx-border-radius: 6; -fx-text-fill: #79e07c; -fx-font-weight: 800; -fx-padding: 10 18;" />
+        <Button fx:id="inventoryFilterButton" onAction="#handleInventoryFilter" style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 18;" text="Filter" />
+        <Button onAction="#handleBatchAdd" style="-fx-background-color: transparent; -fx-border-color: #79e07c; -fx-border-radius: 6; -fx-text-fill: #79e07c; -fx-font-weight: 800; -fx-padding: 10 18;" text="📥 Import CSV" />
     </HBox>
 
     <TableView fx:id="inventoryTable" style="-fx-background-color: #4d667b; -fx-background-radius: 10; -fx-border-color: transparent;" VBox.vgrow="ALWAYS">

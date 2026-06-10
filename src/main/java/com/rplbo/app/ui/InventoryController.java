@@ -11,6 +11,7 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -34,6 +35,11 @@ public class InventoryController implements Refreshable {
     private final ItemDAO itemDAO = new ItemDAO();
     private final ObservableList<Item> masterData = FXCollections.observableArrayList();
     private final DecimalFormat idr = new DecimalFormat("Rp #,###");
+
+    // Simpan status filter saat ini
+    private String currentCategoryFilter = "Semua Kategori";
+    private String currentStatusFilter = "Semua Status";
+    private FilteredList<Item> filteredData; // Pindahkan ke level class
 
     @FXML
     public void initialize() {
@@ -87,25 +93,20 @@ public class InventoryController implements Refreshable {
     }
 
     private void setupSearchLogic() {
-        // Connect the search bar to the list using a FilteredList
-        FilteredList<Item> filteredData = new FilteredList<>(masterData, p -> true);
-
-        inventorySearchField.textProperty().addListener((obs, oldVal, newVal) -> {
-            filteredData.setPredicate(item -> {
-                if (newVal == null || newVal.isBlank()) return true;
-                String lower = newVal.toLowerCase();
-                return item.getName().toLowerCase().contains(lower) ||
-                        item.getSku().toLowerCase().contains(lower);
-            });
-        });
-
+        // Inisialisasi filteredData dengan masterData
+        filteredData = new FilteredList<>(masterData, p -> true);
         inventoryTable.setItems(filteredData);
+
+        // Listener untuk kolom pencarian
+        inventorySearchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            applyFilters();
+        });
     }
 
     private void wireActions() {
         addProductButton.setOnAction(e -> handleAddProduct());
         editStockButton.setOnAction(e -> handleEditStock());
-        syncToCloudButton.setOnAction(e -> handleSyncToCloudAction());
+//        syncToCloudButton.setOnAction(e -> handleSyncToCloudAction());
     }
 
     @FXML
@@ -346,39 +347,86 @@ public class InventoryController implements Refreshable {
 
     @FXML
     private void handleInventoryFilter() {
-        // 1. Ambil daftar kategori dari DAO untuk pilihan filter
-        List<ItemType> categories = itemDAO.getAllTypes();
-        List<String> options = new ArrayList<>();
-        options.add("Semua Barang");
-        options.add("⚠️ Stok Kritis (< 5)");
-        categories.forEach(c -> options.add(c.getItemTypeName()));
-
-        // 2. Tampilkan Dialog Pilihan
-        ChoiceDialog<String> dialog = new ChoiceDialog<>("Semua Barang", options);
+        // 1. Buat Dialog Kustom
+        Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Filter Inventaris");
-        dialog.setHeaderText("Pilih kriteria penyaringan:");
-        dialog.setContentText("Kategori:");
+        dialog.setHeaderText("Pilih kriteria penyaringan barang");
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dialog.getDialogPane().setStyle("-fx-background-color: #1f1f1f;");
 
-        dialog.showAndWait().ifPresent(selected -> {
-            FilteredList<Item> filteredData = new FilteredList<>(masterData, p -> true);
+        // 2. Siapkan Pilihan
+        ComboBox<String> categoryCombo = new ComboBox<>();
+        categoryCombo.getItems().add("Semua Kategori");
+        itemDAO.getAllTypes().forEach(t -> categoryCombo.getItems().add(t.getItemTypeName()));
+        categoryCombo.setValue(currentCategoryFilter);
+        categoryCombo.setMaxWidth(Double.MAX_VALUE);
+        categoryCombo.setStyle("-fx-background-color: #3d5062; -fx-text-fill: white;");
 
-            filteredData.setPredicate(item -> {
-                if (selected.equals("Semua Barang")) return true;
+        ComboBox<String> statusCombo = new ComboBox<>();
+        statusCombo.getItems().addAll("Semua Status", "Tersedia", "Kritis", "Habis");
+        statusCombo.setValue(currentStatusFilter);
+        statusCombo.setMaxWidth(Double.MAX_VALUE);
+        statusCombo.setStyle("-fx-background-color: #3d5062; -fx-text-fill: white;");
 
-                if (selected.equals("⚠️ Stok Kritis (< 5)")) {
-                    return item.getStock() < 5;
+        // Layout Form
+        GridPane grid = new GridPane();
+        grid.setHgap(10); grid.setVgap(15);
+        grid.setPadding(new Insets(20));
+        String labelStyle = "-fx-text-fill: #dbe7ef; -fx-font-weight: bold;";
+
+        grid.add(createLabel("Kategori:", labelStyle), 0, 0);
+        grid.add(categoryCombo, 1, 0);
+        grid.add(createLabel("Status Stok:", labelStyle), 0, 1);
+        grid.add(statusCombo, 1, 1);
+
+        dialog.getDialogPane().setContent(grid);
+
+        // 3. Eksekusi Filter
+        dialog.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                currentCategoryFilter = categoryCombo.getValue();
+                currentStatusFilter = statusCombo.getValue();
+                applyFilters();
+
+                // Beri visual feedback pada tombol filter
+                if (currentCategoryFilter.equals("Semua Kategori") && currentStatusFilter.equals("Semua Status")) {
+                    inventoryFilterButton.setText("Filter");
+                } else {
+                    inventoryFilterButton.setText("Filter: Aktif");
                 }
+            }
+        });
+    }
 
-                // Filter berdasarkan nama kategori
-                String itemCategory = itemDAO.getTypeNameById(item.getItTyId());
-                return itemCategory.equals(selected);
-            });
+    /**
+     * Logika Pusat untuk menggabungkan Search + Category + Status
+     */
+    private void applyFilters() {
+        String searchKeyword = inventorySearchField.getText().toLowerCase().trim();
 
-            inventoryTable.setItems(filteredData);
-            inventoryFilterButton.setText("Filter: " + selected);
+        filteredData.setPredicate(item -> {
+            // A. Filter Pencarian (Nama atau SKU)
+            boolean matchesSearch = searchKeyword.isEmpty() ||
+                    item.getName().toLowerCase().contains(searchKeyword) ||
+                    item.getSku().toLowerCase().contains(searchKeyword);
 
-            // Ubah warna tombol jika filter aktif agar user ingat
-            inventoryFilterButton.setStyle("-fx-border-color: #79e07c; -fx-text-fill: #79e07c;");
+            // B. Filter Kategori
+            String itemCat = itemDAO.getTypeNameById(item.getItTyId());
+            boolean matchesCategory = currentCategoryFilter.equals("Semua Kategori") ||
+                    itemCat.equals(currentCategoryFilter);
+
+            // C. Filter Status Stok
+            boolean matchesStatus = true;
+            if (!currentStatusFilter.equals("Semua Status")) {
+                int stock = item.getStock();
+                switch (currentStatusFilter) {
+                    case "Tersedia" -> matchesStatus = stock >= 5;
+                    case "Kritis" -> matchesStatus = stock > 0 && stock < 5;
+                    case "Habis" -> matchesStatus = stock <= 0;
+                }
+            }
+
+            return matchesSearch && matchesCategory && matchesStatus;
         });
     }
 

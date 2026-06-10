@@ -22,6 +22,7 @@ import javafx.stage.Stage;
 //import java.awt.*;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class EmployeesController {
 
@@ -77,9 +78,17 @@ public class EmployeesController {
         colAction.setCellFactory(column -> new TableCell<>() {
             private final Button btnToggle = new Button();
             private final Button btnReset = new Button("Reset");
+            private final Button btnLogs = new Button("Logs");
             private final HBox container = new HBox(8, btnToggle, btnReset);
 
             {
+                btnReset.setStyle("-fx-background-color: #3d5062; -fx-text-fill: white; -fx-background-radius: 5;");
+                btnLogs.setStyle("-fx-background-color: #4d667b; -fx-text-fill: white; -fx-background-radius: 5;");
+
+                btnLogs.setOnAction(e -> {
+                    User user = getTableView().getItems().get(getIndex());
+                    if (user != null) openEmployeeLogsWindow(user);
+                });
                 // Styling tombol Reset
                 btnReset.setStyle("-fx-background-color: #3d5062; -fx-text-fill: white; -fx-background-radius: 5; -fx-cursor: hand;");
                 btnReset.setOnAction(e -> {
@@ -130,7 +139,7 @@ public class EmployeesController {
                 // Jika klik 2x dan baris tidak kosong
                 if (event.getClickCount() == 2 && (!row.isEmpty())) {
                     User selectedUser = row.getItem();
-                    openUserDetailWindow(selectedUser);
+                    showEmployeeActionChoice(selectedUser);
                 }
             });
             return row;
@@ -383,6 +392,60 @@ public class EmployeesController {
         } catch (IOException e) {
             e.printStackTrace();
             showError("Gagal Membuka Detail", "File FXML tidak ditemukan.");
+        }
+    }
+
+    private void openEmployeeLogsWindow(User user) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/rplbo/app/pages/EmployeeLogsPage.fxml"));
+            VBox root = loader.load();
+
+            EmployeeLogsController controller = loader.getController();
+            controller.setEmployeeData(user);
+
+            Stage stage = new Stage();
+            stage.setTitle("Jejak Aktivitas - " + user.getUsername());
+            stage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+            stage.setScene(new javafx.scene.Scene(root));
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Memunculkan pilihan aksi saat karyawan diklik 2x
+     */
+    private void showEmployeeActionChoice(User user) {
+        // 1. Definisikan tipe tombol kustom
+        ButtonType btnSettings = new ButtonType("Pengaturan Akun");
+        ButtonType btnLogs = new ButtonType("Log Aktivitas");
+        ButtonType btnCancel = new ButtonType("Batal", ButtonBar.ButtonData.CANCEL_CLOSE);
+
+        // 2. Buat Alert
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Opsi Karyawan");
+        alert.setHeaderText("Pilih aksi untuk: " + user.getUsername());
+        alert.setContentText("Apa yang ingin Anda lakukan?");
+
+        // Pasang tombol ke alert
+        alert.getButtonTypes().setAll(btnSettings, btnLogs, btnCancel);
+
+        // 3. Styling Dialog (Dark Theme)
+        DialogPane dialogPane = alert.getDialogPane();
+        dialogPane.setStyle("-fx-background-color: #1f1f1f; -fx-border-color: #4d667b; -fx-border-width: 2;");
+
+        // Beri warna teks label di dalam dialog
+        dialogPane.lookupAll(".label").forEach(node -> node.setStyle("-fx-text-fill: white;"));
+
+        // 4. Tangani Pilihan
+        Optional<ButtonType> result = alert.showAndWait();
+        if (result.isPresent()) {
+            if (result.get() == btnSettings) {
+                openUserDetailWindow(user); // Panggil window detail yang sudah ada
+            } else if (result.get() == btnLogs) {
+                openEmployeeLogsWindow(user); // Panggil window log yang sudah ada
+            }
         }
     }
 }
