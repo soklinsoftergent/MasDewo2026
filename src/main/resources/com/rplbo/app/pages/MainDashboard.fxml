@@ -15,11 +15,19 @@
         </VBox>
 
         <VBox spacing="8.0" style="-fx-padding: 18 12 0 12;">
-            <Button fx:id="dashboardButton" onAction="#showDashboard" style="-fx-background-color: #49647c; -fx-text-fill: white; -fx-font-weight: 700; -fx-background-radius: 8; -fx-padding: 12 16; -fx-alignment: CENTER_LEFT;" text="Dashboard" />
-            <Button fx:id="inventoryButton" onAction="#showInventory" style="-fx-background-color: transparent; -fx-text-fill: #627181; -fx-font-weight: 600; -fx-background-radius: 8; -fx-padding: 12 16; -fx-alignment: CENTER_LEFT;" text="Inventory" />
-            <Button fx:id="salesButton" onAction="#showSales" style="-fx-background-color: transparent; -fx-text-fill: #627181; -fx-font-weight: 600; -fx-background-radius: 8; -fx-padding: 12 16; -fx-alignment: CENTER_LEFT;" text="Penjualan" />
-            <Button fx:id="financeButton" onAction="#showFinance" style="-fx-background-color: transparent; -fx-text-fill: #627181; -fx-font-weight: 600; -fx-background-radius: 8; -fx-padding: 12 16; -fx-alignment: CENTER_LEFT;" text="Keuangan" />
-            <Button fx:id="employeeButton" onAction="#showEmployees" style="-fx-background-color: transparent; -fx-text-fill: #627181; -fx-font-weight: 600; -fx-background-radius: 8; -fx-padding: 12 16; -fx-alignment: CENTER_LEFT;" text="Karyawan" />
+            <Button fx:id="dashboardButton" maxWidth="1.7976931348623157E308" onAction="#showDashboard" style="-fx-background-color: #49647c; -fx-text-fill: white; -fx-font-weight: 700; -fx-background-radius: 8; -fx-padding: 12 16; -fx-alignment: CENTER_LEFT; -fx-cursor: hand;" text="Dashboard" />
+
+            <Button fx:id="inventoryButton" maxWidth="1.7976931348623157E308" onAction="#showInventory" style="-fx-background-color: transparent; -fx-text-fill: #627181; -fx-font-weight: 600; -fx-background-radius: 8; -fx-padding: 12 16; -fx-alignment: CENTER_LEFT; -fx-cursor: hand;" text="Inventory" />
+
+            <Button fx:id="restockButton" maxWidth="1.7976931348623157E308" onAction="#showRestock" style="-fx-background-color: transparent; -fx-text-fill: #627181; -fx-font-weight: 600; -fx-background-radius: 8; -fx-padding: 12 16; -fx-alignment: CENTER_LEFT; -fx-cursor: hand;" text="Restok" />
+
+            <Button fx:id="salesButton" maxWidth="1.7976931348623157E308" onAction="#showSales" style="-fx-background-color: transparent; -fx-text-fill: #627181; -fx-font-weight: 600; -fx-background-radius: 8; -fx-padding: 12 16; -fx-alignment: CENTER_LEFT; -fx-cursor: hand;" text="Penjualan" />
+
+            <Button fx:id="supplierButton" maxWidth="1.7976931348623157E308" onAction="#showSuppliers" style="-fx-background-color: transparent; -fx-text-fill: #627181; -fx-font-weight: 600; -fx-background-radius: 8; -fx-padding: 12 16; -fx-alignment: CENTER_LEFT; -fx-cursor: hand;" text="Suppliers" />
+
+            <Button fx:id="financeButton" maxWidth="1.7976931348623157E308" onAction="#showFinance" style="-fx-background-color: transparent; -fx-text-fill: #627181; -fx-font-weight: 600; -fx-background-radius: 8; -fx-padding: 12 16; -fx-alignment: CENTER_LEFT; -fx-cursor: hand;" text="Keuangan" />
+
+            <Button fx:id="employeeButton" maxWidth="1.7976931348623157E308" onAction="#showEmployees" style="-fx-background-color: transparent; -fx-text-fill: #627181; -fx-font-weight: 600; -fx-background-radius: 8; -fx-padding: 12 16; -fx-alignment: CENTER_LEFT; -fx-cursor: hand;" text="Karyawan" />
         </VBox>
 
         <Region VBox.vgrow="ALWAYS" />
@@ -31,15 +39,11 @@
         <HBox alignment="CENTER_LEFT" spacing="14.0" style="-fx-background-color: #4d667b; -fx-padding: 16 22;">
             <Label fx:id="pageTitleLabel" style="-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: 800;" text="Dashboard" />
             <Region HBox.hgrow="ALWAYS" />
-            <Button text="📥 Ekspor Laporan (CSV)"
-                    onAction="#handleExportReport"
-                    style="-fx-background-color: #4d667b; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 20; -fx-background-radius: 8; -fx-cursor: hand;" />
+            <Button onAction="#handleExportReport" style="-fx-background-color: #4d667b; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 20; -fx-background-radius: 8; -fx-cursor: hand;" text="📥 Ekspor Laporan (CSV)" />
             <Label fx:id="criticalStockBadge" style="-fx-background-color: #f7c2c5; -fx-text-fill: #b33f44; -fx-padding: 10 22; -fx-background-radius: 8; -fx-font-weight: 800;" text="0 stok kritis" />
             <Label fx:id="adminRoleBadge" style="-fx-background-color: #d8c3ff; -fx-text-fill: #6d4ab5; -fx-padding: 10 26; -fx-background-radius: 8; -fx-font-weight: 800;" text="Admin" />
             <!-- Tambahkan di HBox Header MainDashboard.fxml -->
-            <Button fx:id="btnAttendance" onAction="#handleAttendanceAction"
-                    style="-fx-background-color: #79e07c; -fx-text-fill: #1f2937; -fx-font-weight: 800; -fx-background-radius: 8; -fx-padding: 8 16;"
-                    text="MASUK KERJA" />
+            <Button fx:id="btnAttendance" onAction="#handleAttendanceAction" style="-fx-background-color: #79e07c; -fx-text-fill: #1f2937; -fx-font-weight: 800; -fx-background-radius: 8; -fx-padding: 8 16;" text="MASUK KERJA" />
             <Label fx:id="shiftTimerLabel" style="-fx-text-fill: #dbe7ef; -fx-font-size: 11px;" text="Shift belum dimulai" />
         </HBox>
 

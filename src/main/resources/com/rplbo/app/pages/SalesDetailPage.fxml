@@ -7,18 +7,24 @@
     <padding><Insets bottom="25.0" left="25.0" right="25.0" top="25.0" /></padding>
     <children>
         <!-- Header -->
+        <!-- Cari bagian Header HBox di SalesDetailPage.fxml dan ganti menjadi ini -->
         <HBox alignment="CENTER_LEFT" spacing="10.0">
             <children>
                 <VBox HBox.hgrow="ALWAYS">
                     <children>
-                        <Label fx:id="invoiceLabel" text="INV-0000" style="-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: 800;" />
-                        <Label fx:id="dateLabel" text="12 April 2026" style="-fx-text-fill: #8a98a4;" />
+                        <Label fx:id="invoiceLabel" style="-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: 800;" text="INV-0000" />
+                        <Label fx:id="dateLabel" style="-fx-text-fill: #8a98a4;" text="12 April 2026" />
                     </children>
                 </VBox>
-                <Label fx:id="statusBadge" text="SELESAI" style="-fx-background-color: #dff8cd; -fx-text-fill: #4e8f4c; -fx-padding: 8 20; -fx-background-radius: 8; -fx-font-weight: 800;" />
-                <Button text="🖨️ Cetak Struk"
-                        onAction="#handlePrintReceipt"
-                        style="-fx-background-color: #79e07c; -fx-text-fill: #1f2937; -fx-font-weight: 800; -fx-padding: 10 20; -fx-background-radius: 8;" />
+
+                <!-- TOMBOL BATAL (Baru) -->
+                <Button fx:id="btnVoidSale" onAction="#handleVoidSale"
+                        style="-fx-background-color: transparent; -fx-border-color: #ff8e8e; -fx-border-radius: 8; -fx-text-fill: #ff8e8e; -fx-font-weight: 800; -fx-padding: 8 16;"
+                        text="❌ Batalkan Transaksi" />
+
+                <Button onAction="#handlePrintReceipt"
+                        style="-fx-background-color: #79e07c; -fx-text-fill: #1f2937; -fx-font-weight: 800; -fx-padding: 10 20; -fx-background-radius: 8;"
+                        text="🖨️ Cetak Struk" />
             </children>
         </HBox>
 

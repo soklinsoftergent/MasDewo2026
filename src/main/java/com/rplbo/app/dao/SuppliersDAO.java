@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class SupplierDAO {
+public class SuppliersDAO {
     public List<Supplier> getAllSuppliers() {
         List<Supplier> suppliers = new ArrayList<>();
         List<Map<String, Object>> data = DBConnection.getInstance().selectAll("suppliers");
@@ -15,5 +15,10 @@ public class SupplierDAO {
             suppliers.add(new Supplier(row));
         }
         return suppliers;
+    }
+
+    public boolean deleteSupplier(int id) {
+        // Uses your generic DBConnection helper
+        return DBConnection.getInstance().deleteByKeyColumn("suppliers", "supplier_id", id);
     }
 }

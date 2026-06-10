@@ -23,7 +23,7 @@ import java.text.DecimalFormat;
 import java.util.List;
 import java.util.Map;
 
-public class DashboardController {
+public class DashboardController implements Refreshable {
 
     // --- FXML Bindings ---
     @FXML private Label dashboardRevenueLabel, dashboardTransactionsLabel,
@@ -39,10 +39,11 @@ public class DashboardController {
 
     @FXML
     public void initialize() {
-        refreshDashboard();
+        refresh();
     }
 
-    public void refreshDashboard() {
+    @Override
+    public void refresh() {
         loadSummaryCards();
         loadCriticalStockList();
         loadInventoryBarChart();

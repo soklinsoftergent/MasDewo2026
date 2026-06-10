@@ -3,16 +3,14 @@ package com.rplbo.app;
 import com.rplbo.app.dao.*;
 import com.rplbo.app.models.*;
 import com.rplbo.app.services.UserSession;
+import com.rplbo.app.ui.DashboardController;
+import com.rplbo.app.ui.FinanceController;
+import com.rplbo.app.ui.InventoryController;
+import com.rplbo.app.ui.SalesController;
 import com.rplbo.app.util.CSVExporter;
-import com.rplbo.app.util.FormatterUtil;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
-import javafx.scene.chart.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import java.io.IOException;
@@ -23,9 +21,9 @@ public class MainDashboardController {
     // UI References from MainDashboard.fxml
     @FXML private StackPane contentArea;
     @FXML private Label pageTitleLabel, criticalStockBadge, adminRoleBadge;
-    @FXML private Button dashboardButton, inventoryButton, salesButton, financeButton, employeeButton;
-    @FXML private Button btnAttendance;
+    @FXML private Button dashboardButton, inventoryButton, salesButton, financeButton, employeeButton, btnAttendance, restockButton, supplierButton;
     @FXML private Label shiftTimerLabel;
+
 
     // DAOs
     private final ItemDAO itemDAO = new ItemDAO();
@@ -35,16 +33,19 @@ public class MainDashboardController {
     private final AttendanceDAO attendanceDAO = new AttendanceDAO();
 
     // Caching UI Nodes for speed
+    private final Map<String, Object> controllerCache = new LinkedHashMap<>();
     private final Map<String, Node> viewCache = new HashMap<>();
     private final DecimalFormat idr = new DecimalFormat("Rp #,###");
 
     // We store these so the "Badge" can interact with the Inventory page
     private TextField globalInventorySearchField;
 
+    // Shift control
+    private boolean isShiftActive = false;
+
     @FXML
     public void initialize() {
         setupAccessControl();
-
         // Set up the "Jump to Inventory" logic from the header badge
         criticalStockBadge.setOnMouseClicked(event -> {
             showInventory();
@@ -71,37 +72,84 @@ public class MainDashboardController {
 
     // --- PAGE NAVIGATION ---
 
-    @FXML public void showDashboard() {
-        Node node = loadView("/com/rplbo/app/pages/DashboardPage.fxml");
+
+
+    @FXML
+    public void showRestock() {
+        // Gunakan helper loadView yang sudah Anda miliki
+        Node node = loadView("/com/rplbo/app/pages/RestockPage.fxml");
+
+        // Opsional: Jika ingin refresh data supplier setiap kali halaman dibuka
+        // RestockController controller = (RestockController) lastLoadedController;
+        // controller.refreshSuppliers();
+
+        renderView(node, "Restok Barang", restockButton);
+    }
+
+    @FXML
+    public void showDashboard() {
+        String DASHBOARD_PAGE = "/com/rplbo/app/pages/DashboardPage.fxml";
+        Node node = loadView(DASHBOARD_PAGE);
+        DashboardController controller = (DashboardController) controllerCache.get(DASHBOARD_PAGE);
+
+        if (com.rplbo.app.util.DataStateSignal.dashboardNeedsRefresh) {
+            System.out.println("📊 Data Bisnis berubah. Me-refresh Dashboard...");
+            controller.refresh();
+            com.rplbo.app.util.DataStateSignal.dashboardNeedsRefresh = false;
+        }
+
         renderView(node, "Dashboard", dashboardButton);
     }
 
-    @FXML public void showInventory() {
+    // Logika Navigasi Baru (Contoh untuk Inventory)
+    @FXML
+    public void showInventory() {
         Node node = loadView("/com/rplbo/app/pages/InventoryPage.fxml");
+        InventoryController controller = (InventoryController) controllerCache.get("/com/rplbo/app/pages/InventoryPage.fxml");
+
+        // CEK APAKAH DATA KOTOR? (Requirement Anda)
+        if (com.rplbo.app.util.DataStateSignal.inventoryNeedsRefresh) {
+            System.out.println("🔄 Data Inventory berubah. Me-refresh tabel...");
+            controller.refresh();
+            com.rplbo.app.util.DataStateSignal.inventoryNeedsRefresh = false; // Reset sinyal
+        }
+
         renderView(node, "Inventory", inventoryButton);
     }
 
     @FXML
     public void showSales() {
-        // Pastikan folder 'pages' memang ada di dalam resources/com/rplbo/app/
-        Node node = loadView("/com/rplbo/app/pages/SalesPage.fxml");
+        String path = "/com/rplbo/app/pages/SalesPage.fxml";
+        Node node = loadView(path);
+        SalesController controller = (SalesController) controllerCache.get(path);
 
-        // Pastikan pencarian ID dilakukan SETELAH node dipastikan tidak null
-        if (node instanceof VBox) {
-            TableView<Map<String, Object>> table = (TableView<Map<String, Object>>) node.lookup("#salesTable");
-            if (table != null) {
-                table.setItems(FXCollections.observableArrayList(saleDAO.getAllSalesDetailed()));
-            }
+        if (com.rplbo.app.util.DataStateSignal.salesNeedsRefresh) {
+            controller.loadSalesHistory(); // Pastikan SalesController implements Refreshable
+            com.rplbo.app.util.DataStateSignal.salesNeedsRefresh = false;
         }
 
         renderView(node, "Penjualan", salesButton);
     }
 
+    @FXML
+    public void showSuppliers() {
+        Node node = loadView("/com/rplbo/app/pages/SuppliersPage.fxml");
+        renderView(node, "Manajemen Supplier", supplierButton);
+    }
 
+    @FXML
+    public void showFinance() {
+        String FINANCE_PAGE = "/com/rplbo/app/pages/FinancePage.fxml";
+        Node node = loadView(FINANCE_PAGE);
+        FinanceController controller = (FinanceController) controllerCache.get(FINANCE_PAGE);
 
-    @FXML public void showFinance() {
-        Node node = loadView("/com/rplbo/app/pages/FinancePage.fxml");
-        renderView(node, "Finance & Kas", financeButton);
+        if (com.rplbo.app.util.DataStateSignal.dashboardNeedsRefresh) {
+            System.out.println("📊 Data Bisnis berubah. Me-refresh Dashboard...");
+            controller.refresh();
+            com.rplbo.app.util.DataStateSignal.dashboardNeedsRefresh = false;
+        }
+
+        renderView(node, "Keuangan", financeButton);
     }
 
     @FXML public void showEmployees() {
@@ -116,38 +164,54 @@ public class MainDashboardController {
         if (viewCache.containsKey(path)) return viewCache.get(path);
 
         try {
-            // 1. Ambil URL Resource
-            java.net.URL resource = getClass().getResource(path);
-
-            // 2. Cek apakah null?
-            if (resource == null) {
-                System.err.println("❌ ERROR: File FXML tidak ditemukan di path: " + path);
-                return new Label("File tidak ditemukan: " + path);
-            }
-
-            // 3. Muat FXML
-            FXMLLoader loader = new FXMLLoader(resource);
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(path));
             Node node = loader.load();
 
+            // Simpan Node dan Controller-nya
             viewCache.put(path, node);
+            controllerCache.put(path, loader.getController());
+
             return node;
-        } catch (IOException e) {
-            System.err.println("❌ ERROR: Gagal memuat file FXML!");
-            e.printStackTrace();
-            return new Label("Error loading " + path);
-        }
+        } catch (IOException e) { e.printStackTrace(); return new Label("Error"); }
     }
+
 
     private void renderView(Node node, String title, Button activeBtn) {
         contentArea.getChildren().setAll(node);
         pageTitleLabel.setText(title);
+
+        // 1. Matikan semua warna tombol dulu
         resetSidebarStyles();
-        if (activeBtn != null) activeBtn.setStyle("-fx-background-color: #49647c; -fx-text-fill: white; -fx-font-weight: bold;");
+
+        // 2. Nyalakan warna hanya untuk tombol yang diklik
+        if (activeBtn != null) {
+            activeBtn.setStyle("-fx-background-color: #49647c; " + // Biru Slate aktif
+                    "-fx-text-fill: white; " +
+                    "-fx-font-weight: 700; " +
+                    "-fx-background-radius: 8; " +
+                    "-fx-padding: 12 16; " +
+                    "-fx-alignment: CENTER_LEFT;");
+        }
     }
 
     private void resetSidebarStyles() {
-        List.of(dashboardButton, inventoryButton, salesButton, financeButton, employeeButton)
-                .forEach(b -> b.setStyle("-fx-background-color: transparent; -fx-text-fill: #627181;"));
+        // Tambahkan SEMUA tombol ke dalam List ini
+        List<Button> allButtons = List.of(
+                dashboardButton, inventoryButton, restockButton,
+                salesButton, supplierButton, financeButton, employeeButton
+        );
+
+        allButtons.forEach(b -> {
+            if (b != null) {
+                // Style standar untuk tombol tidak aktif
+                b.setStyle("-fx-background-color: transparent; " +
+                        "-fx-text-fill: #627181; " + // Abu-abu
+                        "-fx-font-weight: 600; " +
+                        "-fx-background-radius: 8; " +
+                        "-fx-padding: 12 16; " +
+                        "-fx-alignment: CENTER_LEFT;");
+            }
+        });
     }
 //
 //    @FXML
@@ -227,20 +291,85 @@ public class MainDashboardController {
     private void handleClosingShift(Attendance shift) {
         User current = UserSession.getInstance().getCurrentUser();
 
-        // 1. Hitung total penjualan selama shift ini (Requirement: Closing Shift Report)
-        double totalSales = saleDAO.getTotalSalesInShift(current.getUserId(), shift.getClockIn(), java.time.LocalDateTime.now());
+        // 1. Ambil Ringkasan Penjualan dari SaleDAO
+        // Kita gunakan method getClosingReport yang sudah kita buat di SaleDAO
+        Map<String, Object> reportData = saleDAO.getClosingReport(current.getUserId());
 
-        // 2. Tampilkan laporan singkat ke karyawan
+        int totalTrx = 0;
+        double totalCash = 0;
+        if (reportData != null) {
+            totalTrx = ((Number) reportData.get("total_orders")).intValue();
+            totalCash = (reportData.get("total_cash") != null) ?
+                    ((Number) reportData.get("total_cash")).doubleValue() : 0.0;
+        }
+
+        // 2. Hitung Durasi Kerja (Closing Hours Logic)
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.Duration duration = java.time.Duration.between(shift.getClockIn(), now);
+        long hours = duration.toHours();
+        long minutes = duration.toMinutesPart();
+
+        // 3. Rakit Pesan Laporan Penutupan
         String reportMsg = String.format(
-                "Shift Berakhir.\n\nTotal Penjualan Anda: %s\nSilakan setorkan uang ke kasir Admin.",
-                FormatterUtil.formatCurrency(totalSales)
+                "📝 LAPORAN PENUTUPAN SHIFT\n" +
+                        "----------------------------------\n" +
+                        "Karyawan    : %s\n" +
+                        "Waktu Masuk : %s\n" +
+                        "Waktu Keluar: %s\n" +
+                        "Total Durasi: %d Jam %d Menit\n" +
+                        "----------------------------------\n" +
+                        "Total Order : %d Transaksi\n" +
+                        "Total Uang   : %s\n" +
+                        "----------------------------------\n" +
+                        "Harap serahkan uang tunai sesuai jumlah di atas\n" +
+                        "kepada Admin sebelum meninggalkan toko.",
+                current.getUsername().toUpperCase(),
+                com.rplbo.app.util.FormatterUtil.formatDate(shift.getClockIn()),
+                com.rplbo.app.util.FormatterUtil.formatDate(now),
+                hours, minutes,
+                totalTrx,
+                com.rplbo.app.util.FormatterUtil.formatCurrency(totalCash)
         );
 
-        Alert report = new Alert(Alert.AlertType.INFORMATION, reportMsg, ButtonType.OK);
-        report.setHeaderText("Laporan Penutupan Shift");
-        report.showAndWait();
+        // 4. Tampilkan Konfirmasi Final
+        Alert report = new Alert(Alert.AlertType.INFORMATION);
+        report.setTitle("Shift Summary");
+        report.setHeaderText("Terima kasih atas kerja keras Anda hari ini!");
+        report.setContentText(reportMsg);
 
-        // 3. Simpan waktu keluar ke DB
-        shift.doClockOut();
+        // Tunggu sampai user klik OK baru tutup shift di DB
+        report.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                // 5. Simpan waktu keluar ke DB (ActiveRecord)
+                shift.doClockOut();
+                System.out.println("✅ Shift closed for " + current.getUsername());
+
+//                 6. Opsional: Auto-Logout setelah tutup shift demi keamanan
+//                 handleLogout(null);
+            }
+        });
+    }
+
+    @FXML
+    private void handleExportMonthlySummary() {
+        // 🛡️ Hanya Admin yang boleh melihat laba bersih bulanan
+        if (!UserSession.getInstance().isAdmin()) {
+            new Alert(Alert.AlertType.ERROR, "Akses Ditolak! Hanya Admin yang bisa mengunduh laporan laba.").show();
+            return;
+        }
+
+        // 1. Ambil data agregat (Tanggal, Transaksi, Omset, Laba)
+        List<Map<String, Object>> summaryData = saleDAO.getMonthlyReportData();
+
+        if (summaryData != null && !summaryData.isEmpty()) {
+            String fileName = "SUMMARY_KEUANGAN_" + java.time.LocalDate.now();
+
+            // 2. Ekspor menggunakan utilitas generic kita
+            CSVExporter.exportData(summaryData, fileName);
+
+            new Alert(Alert.AlertType.INFORMATION, "Ringkasan Laba Rugi berhasil diekspor ke folder Downloads.").show();
+        } else {
+            new Alert(Alert.AlertType.WARNING, "Belum ada data transaksi untuk bulan ini.").show();
+        }
     }
 }

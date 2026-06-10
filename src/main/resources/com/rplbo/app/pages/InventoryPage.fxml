@@ -1,37 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.TableColumn?>
-<?import javafx.scene.control.TableView?>
-<?import javafx.scene.control.TextField?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Priority?>
-<?import javafx.scene.layout.Region?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
 
-<VBox xmlns="http://javafx.com/javafx/21"
-      xmlns:fx="http://javafx.com/fxml/1"
-      spacing="18.0"
-      style="-fx-background-color: #1f1f1f;"
-      fx:controller="com.rplbo.app.ui.InventoryController">
-    <HBox spacing="12.0" alignment="CENTER_LEFT">
-        <TextField fx:id="inventorySearchField" promptText="Cari transaksi..." HBox.hgrow="ALWAYS"
-                   style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: #efefef; -fx-prompt-text-fill: #6f6f6f; -fx-padding: 10 12;"/>
-        <Button fx:id="addProductButton" text="+ Tambah Produk" style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 18;"/>
-        <Button fx:id="editStockButton" text="Edit Stok" style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 18;"/>
-        <Button fx:id="inventoryFilterButton" text="Filter" style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 18;"/>
+<VBox spacing="18.0" style="-fx-background-color: #1f1f1f;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.rplbo.app.ui.InventoryController">
+    <HBox alignment="CENTER_LEFT" spacing="12.0">
+        <TextField fx:id="inventorySearchField" promptText="Cari transaksi..." style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: #efefef; -fx-prompt-text-fill: #6f6f6f; -fx-padding: 10 12;" HBox.hgrow="ALWAYS" />
+        <Button fx:id="addProductButton" style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 18;" text="+ Tambah Produk" />
+        <Button fx:id="editStockButton" style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 18;" text="Edit Stok" />
+        <Button fx:id="inventoryFilterButton" style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 18;" text="Filter" />
+        <Button fx:id="syncToCloudButton" style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 18;" mnemonicParsing="false" text="Sync Cloud" />
+        <Button onAction="#handleBatchAdd" text="📥 Import CSV"
+                style="-fx-background-color: transparent; -fx-border-color: #79e07c; -fx-border-radius: 6; -fx-text-fill: #79e07c; -fx-font-weight: 800; -fx-padding: 10 18;" />
     </HBox>
 
-    <TableView fx:id="inventoryTable" VBox.vgrow="ALWAYS" style="-fx-background-color: #4d667b; -fx-background-radius: 10; -fx-border-color: transparent;">
+    <TableView fx:id="inventoryTable" style="-fx-background-color: #4d667b; -fx-background-radius: 10; -fx-border-color: transparent;" VBox.vgrow="ALWAYS">
         <columns>
-            <TableColumn fx:id="inventoryNameColumn" text="Nama Produk" prefWidth="220.0"/>
-            <TableColumn fx:id="inventoryCategoryColumn" text="Kategori" prefWidth="140.0"/>
-            <TableColumn fx:id="inventoryStockColumn" text="Stok" prefWidth="90.0"/>
-            <TableColumn fx:id="inventoryBuyColumn" text="Harga Beli" prefWidth="130.0"/>
-            <TableColumn fx:id="inventorySellColumn" text="Harga Jual" prefWidth="130.0"/>
-            <TableColumn fx:id="inventoryStatusColumn" text="Status" prefWidth="110.0"/>
-            <TableColumn fx:id="inventoryPlatformColumn" text="Platform" prefWidth="120.0"/>
+            <TableColumn fx:id="inventoryNameColumn" prefWidth="220.0" text="Nama Produk" />
+            <TableColumn fx:id="inventoryCategoryColumn" prefWidth="140.0" text="Kategori" />
+            <TableColumn fx:id="inventoryStockColumn" prefWidth="90.0" text="Stok" />
+            <TableColumn fx:id="inventoryBuyColumn" prefWidth="130.0" text="Harga Beli" />
+            <TableColumn fx:id="inventorySellColumn" prefWidth="130.0" text="Harga Jual" />
+            <TableColumn fx:id="inventoryStatusColumn" prefWidth="110.0" text="Status" />
+            <TableColumn fx:id="inventoryPlatformColumn" prefWidth="120.0" text="Platform" />
         </columns>
     </TableView>
 </VBox>

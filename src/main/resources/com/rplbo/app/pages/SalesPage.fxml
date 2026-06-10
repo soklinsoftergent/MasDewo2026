@@ -15,7 +15,11 @@
     <HBox spacing="12.0" alignment="CENTER_LEFT">
         <TextField fx:id="salesSearchField" promptText="Cari transaksi..." HBox.hgrow="ALWAYS"
                    style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: #efefef; -fx-prompt-text-fill: #6f6f6f; -fx-padding: 10 12;"/>
-        <Button fx:id="newTransactionButton" text="+ Transaksi Baru" style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 18;"/>
+        <!-- Cari bagian Button newTransactionButton di SalesPage.fxml -->
+        <Button fx:id="newTransactionButton"
+                onAction="#handleNewTransaction"
+                style="-fx-background-color: transparent; -fx-border-color: #6f6f6f; -fx-border-radius: 6; -fx-text-fill: white; -fx-font-weight: 800; -fx-padding: 10 18;"
+                text="+ Transaksi Baru" />
     </HBox>
 
     <TableView fx:id="salesTable" VBox.vgrow="ALWAYS" style="-fx-background-color: #4d667b; -fx-background-radius: 10; -fx-border-color: transparent;">

@@ -207,9 +207,12 @@ public class DBConnection {
         try {
             conn = getConnection();
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                pstmt.setObject(1, keyValue); // PINDAH KE SINI (sebelum execute)
+                // 1. ISI PARAMETER DULU
+                pstmt.setObject(1, keyValue);
+
+                // 2. BARU EKSEKUSI
                 try (ResultSet rs = pstmt.executeQuery()) {
-                    if (rs.next()) return rs.getString(1);
+                    if (rs.next()) return rs.getObject(1);
                 }
             }
         } catch (SQLException e) {
@@ -298,40 +301,29 @@ public class DBConnection {
         } finally {
             releaseConnection(conn);
         }
+    }
 
-//        try {
-//            ensureConnection();
-//            StringJoiner columns = new StringJoiner(", ");
-//            StringJoiner placeholders = new StringJoiner(", ");
-//
-//            for (Map.Entry<String, Object> entry : data.entrySet()) {
-//                columns.add(entry.getKey());
-//                placeholders.add("?");
-//            }
-//
-//            String sql = String.format("INSERT INTO %s (%s) VALUES (%s)", tableName, columns, placeholders);
-//            PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-//
-//            int i = 1;
-//            for (Map.Entry<String, Object> entry : data.entrySet()) {
-//                pstmt.setObject(i++, entry.getValue());
-//            }
-//
-//            int affectedRows = pstmt.executeUpdate();
-//            if (affectedRows == 0) {
-//                return null;
-//            }
-//
-//            try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
-//                if (generatedKeys.next()) {
-//                    return generatedKeys.getInt(1);
-//                }
-//            }
-//            return null;
-//        } catch (SQLException e) {
-//            e.printStackTrace();
-//            return null;
-//        }
+    // Tambahkan versi ini agar bisa menggunakan koneksi transaksi yang sama
+    public Integer insertIntoTableAndGetId(Connection conn, String tableName, Map<String, Object> data) throws SQLException {
+        StringJoiner columns = new StringJoiner(", ");
+        StringJoiner placeholders = new StringJoiner(", ");
+        for (String key : data.keySet()) {
+            columns.add(key);
+            placeholders.add("?");
+        }
+
+        String sql = String.format("INSERT INTO %s (%s) VALUES (%s)", tableName, columns, placeholders);
+        try (PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            int i = 1;
+            for (Object value : data.values()) {
+                pstmt.setObject(i++, value);
+            }
+            pstmt.executeUpdate();
+            try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        }
+        return null;
     }
 
     /**
@@ -364,27 +356,22 @@ public class DBConnection {
         } finally {
             releaseConnection(conn);
         }
-//        try {
-//            ensureConnection();
-//            StringJoiner setClause = new StringJoiner(", ");
-//            for (Map.Entry<String, Object> entry : updates.entrySet()) {
-//                setClause.add(entry.getKey() + " = ?");
-//            }
-//
-//            String sql = String.format("UPDATE %s SET %s WHERE %s = ?", tableName, setClause, keyColumn);
-//            PreparedStatement pstmt = conn.prepareStatement(sql);
-//
-//            int i = 1;
-//            for (Map.Entry<String, Object> entry : updates.entrySet()) {
-//                pstmt.setObject(i++, entry.getValue());
-//            }
-//            pstmt.setObject(i, keyValue);
-//
-//            return pstmt.executeUpdate() > 0;
-//        } catch (SQLException e) {
-//            e.printStackTrace();
-//            return false;
-//        }
+    }
+
+    // Tambahkan ini di DBConnection.java agar bisa dipakai di dalam transaksi
+    public boolean updateField(Connection conn, String tableName, String keyColumn, Object keyValue, Map<String, Object> updates) throws SQLException {
+        StringJoiner setClause = new StringJoiner(", ");
+        updates.keySet().forEach(k -> setClause.add(k + " = ?"));
+
+        String sql = String.format("UPDATE %s SET %s WHERE %s = ?", tableName, setClause, keyColumn);
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            int i = 1;
+            for (Object val : updates.values()) {
+                pstmt.setObject(i++, val);
+            }
+            pstmt.setObject(i, keyValue);
+            return pstmt.executeUpdate() > 0;
+        }
     }
 
     /**
@@ -562,17 +549,36 @@ public class DBConnection {
     public Map<String, Object> rowToMap(ResultSet rs) {
         Map<String, Object> row = new LinkedHashMap<>();
         try {
-            int i = 1;
-            while (rs.next()) {
-                ResultSetMetaData meta = rs.getMetaData();
-                row.put(meta.getColumnName(i), rs.getObject(i));
-                i = i + 1;
+            ResultSetMetaData meta = rs.getMetaData();
+            int columnCount = meta.getColumnCount();
+
+            // Loop berdasarkan jumlah kolom di baris tersebut
+            for (int i = 1; i <= columnCount; i++) {
+                row.put(meta.getColumnLabel(i), rs.getObject(i));
             }
             return row;
         } catch (SQLException e) {
             e.printStackTrace();
+            return null;
         }
-        return null;
+    }
+
+    // Tambahkan versi ini di DBConnection.java (Tanpa releaseConnection di dalam)
+    public boolean insertIntoTable(Connection conn, String tableName, Map<String, Object> data) throws SQLException {
+        StringJoiner columns = new StringJoiner(", ");
+        StringJoiner placeholders = new StringJoiner(", ");
+        for (String key : data.keySet()) {
+            columns.add(key);
+            placeholders.add("?");
+        }
+        String sql = String.format("INSERT INTO %s (%s) VALUES (%s)", tableName, columns, placeholders);
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            int i = 1;
+            for (Object value : data.values()) {
+                pstmt.setObject(i++, value);
+            }
+            return pstmt.executeUpdate() > 0;
+        }
     }
 
     public static void main(String[] args) {
