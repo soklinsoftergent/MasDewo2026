@@ -9,6 +9,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
@@ -401,5 +402,63 @@ public class InventoryController implements Refreshable {
                 showAlert("Error", "Input harus berupa angka!");
             }
         });
+    }
+
+    @FXML
+    private void handleAddCategory() {
+        // 1. Inisialisasi Dialog
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Tambah Kategori Baru");
+        dialog.setHeaderText("Masukkan nama kategori produk baru");
+
+        // Styling Dialog
+        dialog.getDialogPane().setStyle("-fx-background-color: #1f1f1f; -fx-border-color: #d8c3ff;");
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        // 2. Buat Form
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(15);
+        grid.setPadding(new javafx.geometry.Insets(20));
+
+        TextField nameField = createStyledField("Contoh: Lensa, Tripod, dsb.");
+        TextArea descField = new TextArea();
+        descField.setPromptText("Deskripsi kategori (Opsional)");
+        descField.setPrefRowCount(3);
+        descField.setStyle("-fx-control-inner-background: #3d5062; -fx-text-fill: white; -fx-prompt-text-fill: #8a98a4;");
+
+        String labelStyle = "-fx-text-fill: #dbe7ef; -fx-font-weight: bold;";
+        grid.add(createLabel("Nama Kategori:", labelStyle), 0, 0);
+        grid.add(nameField, 1, 0);
+        grid.add(createLabel("Deskripsi:", labelStyle), 0, 1);
+        grid.add(descField, 1, 1);
+
+        dialog.getDialogPane().setContent(grid);
+
+        // 3. Logika Simpan
+        final Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
+            String name = nameField.getText().trim();
+            String desc = descField.getText().trim();
+
+            if (name.isEmpty()) {
+                showAlert("Input Error", "Nama kategori tidak boleh kosong!");
+                event.consume();
+                return;
+            }
+
+            // Gunakan model ItemType yang sudah ActiveRecord
+            ItemType newType = new ItemType(name, desc);
+
+            if (newType.save()) {
+                System.out.println("✅ Kategori baru berhasil dibuat: " + name);
+                // Tidak perlu refresh tabel inventory, tapi data akan muncul saat klik "Tambah Produk"
+            } else {
+                showAlert("Error", "Gagal menyimpan kategori. Mungkin nama sudah ada?");
+                event.consume();
+            }
+        });
+
+        dialog.showAndWait();
     }
 }
